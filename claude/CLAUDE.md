@@ -2,7 +2,7 @@
 
 最后更新：2026-04-30
 
-本文件是 Claude Code 全局入口，只放所有项目都成立的规则。具体技术栈规则放在 `~/.claude/luxixi/`，由业务项目的 `CLAUDE.md` 按需引用。
+本文件是 Claude Code 全局入口，只放跨项目通用规则；技术栈规则由项目级 `CLAUDE.md` 按需引用 `~/.claude/luxixi/`。
 
 当本规范与项目级 `CLAUDE.md` 冲突时，项目级优先。
 
