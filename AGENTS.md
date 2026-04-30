@@ -1,5 +1,3 @@
-@/Users/luxixi/.codex/RTK.md
-
 # Project Profile
 
 本项目是个人 AI 编程助手配置源库，用于维护 Claude Code 与 Codex 的全局入口、技术栈规则、Claude 专用 agents / skills 和同步脚本。
