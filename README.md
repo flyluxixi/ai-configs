@@ -21,6 +21,8 @@
 
 ```text
 ai-configs/
+├── CLAUDE.md                 # 本仓库给 Claude Code 使用的项目级入口
+├── AGENTS.md                 # 本仓库给 Codex 使用的项目级入口
 ├── claude/
 │   ├── CLAUDE.md             # 同步到 ~/.claude/CLAUDE.md
 │   ├── rules/                # 同步到 ~/.claude/rules/
@@ -56,6 +58,7 @@ ai-configs/
 
 - `claude/CLAUDE.md`：Claude Code 全局入口，最终同步到 `~/.claude/CLAUDE.md`
 - `codex/AGENTS.md`：Codex 全局入口，最终同步到 `~/.codex/AGENTS.md`
+- 根目录 `CLAUDE.md` / `AGENTS.md`：本仓库自身的项目级入口，不同步到全局目录
 
 入口文件只放所有项目都成立的规则，例如：
 
@@ -104,7 +107,10 @@ ln -sfn /Users/luxixi/projects/ai-configs/claude/luxixi /Users/luxixi/.codex/lux
 
 ## 现有文件说明
 
-- `claude/CLAUDE.md`：旧版主规则文件，目前仍以 PHP/Webman 为中心，后续会拆分
+- `CLAUDE.md`：本仓库给 Claude Code 使用的项目级入口
+- `AGENTS.md`：本仓库给 Codex 使用的项目级入口
+- `claude/CLAUDE.md`：Claude Code 全局入口源文件
+- `codex/AGENTS.md`：Codex 全局入口源文件
 - `webman-packages-reference.md`：Webman 常用依赖备忘
 - `scripts/update.sh`：Claude Code 生态更新脚本，只服务 Claude Code
 - `docs/ai-assistant-config-architecture.md`：Claude Code / Codex 共用源库的架构规划

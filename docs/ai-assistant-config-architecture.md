@@ -68,6 +68,8 @@ Claude Code 官方支持 `~/.claude/rules/` 机制。如需自动按文件路径
 ai-configs/
 ├── README.md
 ├── PROJECT_STATUS.md
+├── CLAUDE.md                 # 本仓库自身给 Claude Code 使用
+├── AGENTS.md                 # 本仓库自身给 Codex 使用
 ├── claude/
 │   ├── CLAUDE.md             # 同步到 ~/.claude/CLAUDE.md
 │   ├── rules/                # 同步到 ~/.claude/rules/
