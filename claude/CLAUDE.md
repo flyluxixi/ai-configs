@@ -1,7 +1,5 @@
 # Claude Code 全局规范
 
-最后更新：2026-04-30
-
 本文件是 Claude Code 全局入口，只放跨项目通用规则；技术栈规则由项目级 `CLAUDE.md` 按需引用 `~/.claude/luxixi/`。
 
 当本规范与项目级 `CLAUDE.md` 冲突时，项目级优先。
@@ -51,7 +49,7 @@
 
 以下为原则性约束，具体文件路径、文档结构和访问方式在各项目级 `CLAUDE.md` 中声明。
 
-- 每个项目必须在项目级 `CLAUDE.md` 中声明文档清单（有哪些文档、各自职责、谁来维护）
+- 长期维护项目（生产/预生产、日常使用、持续迭代，或包含数据库/外部接口/定时任务等长期上下文）应在项目级 `CLAUDE.md` 中声明文档清单
 - 文档文件名一经在项目级确定，不得自行新增、重命名或拆分
 - 需要对齐其他项目接口时，必须先 fetch 该项目声明的接口文档，不得凭记忆假设接口结构
 - `CHANGELOG.md` 格式统一遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)
@@ -60,29 +58,17 @@
 ## 行为规范
 
 - 接到多步骤任务时，先列出每步的完成标准，确认后再动手
-- 完成后说明改了什么、为什么、有何注意事项、用了哪些平台特性
+- 完成后说明改了什么、为什么、有何注意事项；涉及平台能力取舍时说明用了哪些平台特性
 - 不罗列执行步骤，直接给结论
 - 发现潜在问题（性能隐患、安全漏洞、逻辑缺陷）主动提出
 - 遇到多种可行方案，直接推荐最优的一种并说明理由，不做冗长对比
 - 代码不省略关键实现，不用 `// ...` 占位，不用“其余保持不变”之类模糊表述
 - 代码之外的解释保持简洁，不重复已知信息
-- 给出 Nginx / Redis / PostgreSQL 配置时，提供完整配置块，不给片段
+- 给出配置文件、服务配置或部署配置时，提供完整可落地配置块，不给孤立片段
 
 ## Agent / Skill 使用规范
 
-以下 Agent / Skill 在适配场景时应主动调用，无需等用户提示：
-
-| Agent / Skill | 触发场景 |
-|---|---|
-| php-expert | PHP 代码编写、Webman 进程问题、PHP 侧 Redis 集成、QueryBuilder/Eloquent 写法审查、PHP 层性能审查（N+1/幂等性） |
-| database-reviewer | 编写 SQL、设计 Schema、排查数据库性能（含 ORM/QueryBuilder 生成的 SQL 优化） |
-| security-reviewer | 认证授权、用户输入处理、API 端点、敏感数据操作、SQL 注入防护 |
-| build-error-resolver | 构建失败、类型错误 |
-| 微信小程序开发者 | 微信小程序相关开发 |
-| /d-webman-log | Webman 项目日志初始化、配置 request_id 中间件；详细触发词见 `~/.claude/skills/d-webman-log/SKILL.md` |
-| /d-stop | 会话收尾、更新项目状态；详细触发词见 `~/.claude/skills/d-stop/SKILL.md` |
-
-多个独立任务尽量并行调用，不串行等待。
+会话收尾时使用 `/d-stop`，维护项目状态；详细触发词见 `~/.claude/skills/d-stop/SKILL.md`。
 
 ## 工具使用规范
 
