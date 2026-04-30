@@ -86,12 +86,15 @@ Commit 格式：
 <optional body>
 ```
 
-类型：`feat`、`fix`、`refactor`、`docs`、`test`、`chore`、`perf`、`ci`
+类型：`feat`、`fix`、`docs`、`style`、`refactor`、`perf`、`test`、`build`、`ci`、`chore`
+
+提交前先检查 `git status`，确认只包含本次任务相关文件。
 
 Pull Request：
 
-1. 分析完整 commit 历史（不只看最新一条），用 `git diff [base-branch]...HEAD` 查看全量变更
-2. PR 描述包含：变更摘要、测试计划
+1. 以 PR 目标分支作为 base，分析完整 commit 历史，不只看最新一条
+2. 用 `git diff <base-branch>...HEAD` 查看全量变更
+3. PR 描述包含：变更摘要、测试计划
 
 ## 语言规范
 
