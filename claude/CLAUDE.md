@@ -17,28 +17,6 @@
 - 不覆盖用户未授权改动
 - 不自动生成测试文件，除非明确要求
 
-## 技术栈规则
-
-技术栈规则按需由项目级文件显式引用，例如：
-
-```md
-@~/.claude/luxixi/php-webman.md
-@~/.claude/luxixi/postgresql.md
-@~/.claude/luxixi/redis.md
-@~/.claude/luxixi/nginx.md
-```
-
-当前规划的中立规则文件：
-
-- `~/.claude/luxixi/php-webman.md`
-- `~/.claude/luxixi/go.md`
-- `~/.claude/luxixi/nuxt3.md`
-- `~/.claude/luxixi/flutter.md`
-- `~/.claude/luxixi/miniprogram.md`
-- `~/.claude/luxixi/postgresql.md`
-- `~/.claude/luxixi/redis.md`
-- `~/.claude/luxixi/nginx.md`
-
 ## 平台优先
 
 性能和稳定性优先。遇到多种实现方案时，优先选择资源开销更小、执行路径更短、由成熟平台能力承担更多工作的方案。
