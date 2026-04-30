@@ -1,148 +1,111 @@
-# Claude Code 个人配置仓库
+# ai-configs
 
-本仓库是针对 **PHP / Webman 技术栈**的 Claude Code 自定义配置，包含全局开发规范和可复用的自定义 Skill。
+个人 AI 编程助手配置源库，用于统一维护 Claude Code 与 Codex 的长期规则、技术栈约定、agents、skills 和同步脚本。
 
----
+本仓库是源头，`~/.claude/` 和 `~/.codex/` 是同步目标，不作为手工维护目录。
 
-## 技术栈
+## 当前定位
 
-| 层级 | 技术 |
-|---|---|
-| 语言 | PHP 8.5 |
-| 框架 | Webman（常驻内存，非 FPM） |
-| 数据库 | PostgreSQL |
-| 缓存 / 队列 | Redis |
-| Web Server | Nginx |
-| 操作系统 | Ubuntu 24.04 / AlmaLinux 10.1 |
+本项目原本是 Claude Code + PHP/Webman 的个人配置仓库，现在正在升级为：
 
----
+- 同时支持 Claude Code 与 Codex
+- 同时覆盖 PHP Webman、Go Gin、Nuxt 3、Flutter、微信小程序等技术栈
+- 将通用规则、技术栈规则、工具适配层拆开维护
+- 保留 Claude Code 专用 agents / skills，同时为 Codex 提供独立入口
 
-## 仓库结构
+详细规划见 [docs/ai-assistant-config-architecture.md](docs/ai-assistant-config-architecture.md)。
 
-```
-claude-code/
-├── CLAUDE.md            # 全局开发规范（同步至 ~/.claude/CLAUDE.md）
-├── PROJECT_STATUS.md    # 会话状态记录，由 /d-stop 维护
-├── agents/
-│   └── php-expert.md   # PHP/Webman 专项 agent
+## 目录规划
+
+目标结构：
+
+```text
+ai-configs/
+├── claude/
+│   ├── CLAUDE.md             # 同步到 ~/.claude/CLAUDE.md
+│   ├── rules/                # 同步到 ~/.claude/rules/
+│   ├── luxixi/               # Claude / Codex 共用的中立规则源
+│   ├── agents/               # Claude Code 专用 agents
+│   ├── skills/               # Claude Code 专用 skills
+│   └── commands/             # Claude Code 专用 commands
+├── codex/
+│   ├── AGENTS.md             # 同步到 ~/.codex/AGENTS.md
+│   └── luxixi -> ../claude/luxixi
 ├── scripts/
-│   └── update.sh        # 一键更新 Claude CLI 及所有 skills/agents/commands
-├── skills/
-│   ├── d-stop/
-│   │   └── SKILL.md    # 会话收尾 skill
-│   └── d-webman-log/
-│       └── SKILL.md    # Webman 日志初始化 skill
+│   ├── update.sh             # Claude Code 生态更新脚本
+│   ├── sync-claude.sh        # 同步配置到 ~/.claude/
+│   ├── sync-codex.sh         # 同步配置到 ~/.codex/
+│   └── sync-all.sh           # 同步两边
+├── docs/
 └── README.md
 ```
 
----
+当前仓库仍处于迁移阶段，部分目标目录和同步脚本尚未落地。
 
-## CLAUDE.md 规范要点
+## 规则分层
 
-全局规范涵盖以下核心约束，在所有项目中生效：
+### Claude / Codex 入口
 
-- **最高原则**：性能和稳定性优先；能用平台（PostgreSQL / Redis / Nginx）解决的不用代码绕
-- **Webman 高风险区域**：明确禁止静态属性缓存请求数据、循环内 DB 查询、手动 new PDO、$GLOBALS 传递请求状态
-- **PHP 编码**：强制 `strict_types=1`，命名规范、类型优先级、方法行数上限
-- **数据库**：禁止字符串拼接 SQL，优先 CTE / 窗口函数，迁移脚本幂等
-- **安全**：密钥走环境变量、禁止硬编码、所有用户输入必须验证
-- **配置管理**：config/ 只写结构和默认值，运行时差异通过环境变量注入
-- **Agent 使用**：php-expert / database-reviewer / security-reviewer 等专项 Agent 应主动调用，不等用户提示
+- `claude/CLAUDE.md`：Claude Code 全局入口，最终同步到 `~/.claude/CLAUDE.md`
+- `codex/AGENTS.md`：Codex 全局入口，最终同步到 `~/.codex/AGENTS.md`
 
----
+入口文件只放所有项目都成立的规则，例如：
 
-## 自定义 Agents
+- 回复语言和沟通方式
+- 使用 `rtk` 执行 shell 命令
+- 先读项目 README / CLAUDE.md / AGENTS.md
+- 项目级规则优先
+- 不覆盖用户未授权改动
+- Git、文档、安全底线等通用要求
 
-### `php-expert` — PHP / Webman 专项 Agent
+技术栈专项规则不直接堆进全局入口。
 
-**触发时机**：涉及 PHP 代码编写、修改或审查时自动调用，包括：
-- Controller / Service / Model / Middleware / Process 文件
-- Webman 常驻进程问题（静态变量污染、内存泄漏、Worker 配置）
-- PHP 侧 Redis 集成（缓存策略、分布式锁、Pipeline）
-- Eloquent / Query Builder 写 PostgreSQL / PostGIS 查询
-- PHP 代码安全审查（SQL 注入、幂等性、N+1 优化）
+### 中立规则源
 
-**不触发**：纯 SQL 建表/迁移/索引、纯 Redis 或 Nginx 配置、非 PHP 语言、不含 PHP 代码的数据库架构设计。
+`claude/luxixi/` 是 Claude Code 与 Codex 共用的中立规则源，后续计划维护：
 
-**文件**：`agents/php-expert.md`
+- `go.md`
+- `php-webman.md`
+- `nuxt3.md`
+- `flutter.md`
+- `miniprogram.md`
 
----
+`codex/luxixi` 应作为 symlink 指向 `../claude/luxixi`，保证中立规则只维护一份。
 
-## 自定义 Skills
+### Claude Code 专用资产
 
-### `/d-stop` — 会话收尾
+`claude/agents/` 和 `claude/skills/` 保留 Claude Code 专用格式。
 
-**触发时机**：每次工作结束时调用。
+当前已有：
 
-**行为**：
-- 更新 `PROJECT_STATUS.md`，记录本次完成事项、下次继续方向、未解决问题和重要上下文
-- 写完后朗读"下次继续"部分确认，并推送到远程仓库
+- `claude/agents/php-expert.md`：PHP / Webman 专项 agent
+- `claude/skills/d-stop/SKILL.md`：会话收尾，维护 `PROJECT_STATUS.md`
+- `claude/skills/d-webman-log/SKILL.md`：Webman 日志初始化
 
-**文件**：`skills/d-stop/SKILL.md`
+这些文件里的专家知识可以复用，但格式不直接视为 Codex 通用。
 
----
+## 现有文件说明
 
-### `/d-webman-log` — Webman 日志初始化
+- `claude/CLAUDE.md`：旧版主规则文件，目前仍以 PHP/Webman 为中心，后续会拆分
+- `webman-packages-reference.md`：Webman 常用依赖备忘
+- `scripts/update.sh`：Claude Code 生态更新脚本，只服务 Claude Code
+- `docs/ai-assistant-config-architecture.md`：Claude Code / Codex 共用源库的架构规划
 
-**触发时机**：在 Webman 项目目录下执行 `/d-webman-log`，或提到"日志初始化"、"log setup"、"request_id 中间件"等关键词时主动触发。
+## update.sh 职责
 
-**执行流程**：
+`scripts/update.sh` 负责每日更新 Claude Code 生态内容：
 
-1. **探测环境**：读取 `composer.json` 判断 Monolog 版本（2.x / 3.x），检查 `config/log.php` 和 `RequestIdMiddleware` 是否已存在，探测单应用 / 多应用目录结构，读取 `/etc/os-release` 确认 OS 类型
-2. **生成 `config/log.php`**：日志级别由 `APP_DEBUG` / `LOG_LEVEL` 环境变量控制，不硬编码；使用 `RotatingFileHandler` 按天切割保留 30 天；通过 `support\Context` 注入 `request_id`，禁止在中间件 `pushProcessor`（Webman 常驻进程内存泄漏风险）
-3. **生成 `RequestIdMiddleware`**：优先复用上游 `X-Request-Id` 请求头，用 `?:` 过滤空字符串（而非 `??`）；已存在但不合规时不自动覆盖，提示用户手动修正
-4. **生成 `docs/PHPLOG.md`**：含编号部署步骤（注册中间件、Nginx logrotate、Nginx log_format、PostgreSQL 日志配置、PG 旧日志清理 cron），建议提交到 git 供团队共享
+- 更新 Claude CLI
+- 拉取第三方 Claude agents / skills / commands
+- 安装到 `~/.claude/`
 
-**关键设计决策**：
-- Webman 应用日志由 Monolog 自管切割，**不走 logrotate**（双重切割会导致句柄错乱）
-- Nginx `log_format` 命名为 `webman`，避免与默认 `main` 冲突
-- PG 日志路径按 OS 自动选择（Ubuntu 路径 vs RHEL/AlmaLinux 路径）
+它不负责 Codex，也不承担本仓库到 `~/.claude/` / `~/.codex/` 的同步职责。同步职责后续由 `sync-claude.sh`、`sync-codex.sh`、`sync-all.sh` 承担。
 
-**文件**：`skills/d-webman-log/SKILL.md`
+## 维护原则
 
----
-
-## 安装与使用
-
-将本仓库的 `CLAUDE.md` 内容同步至 `~/.claude/CLAUDE.md`，将 `skills/` 和 `agents/` 目录下的内容复制到 `~/.claude/skills/` 和 `~/.claude/agents/`，Claude Code 会自动加载，无需额外注册。
-
----
-
-## update.sh — 一键更新脚本
-
-`scripts/update.sh` 负责自动更新 Claude CLI 本身以及以下第三方 skills / agents / commands：
-
-| 来源仓库 | 内容 |
-|---|---|
-| affaan-m/everything-claude-code | build-error-resolver、database-reviewer、security-reviewer agents；api-design、postgres-patterns、security-review skills；build-fix、update-docs、verify commands |
-| obra/superpowers | systematic-debugging、verification-before-completion skills |
-| anthropics/claude-plugins-official | frontend-design、skill-creator、agent-sdk-dev 等官方 skills；code-review command |
-| nextlevelbuilder/ui-ux-pro-max-skill | ui-ux-pro-max skill |
-| jnMetaCode/agency-agents-zh | 微信小程序开发者 agent |
-
-### 手动执行
-
-```bash
-bash ~/.claude/scripts/update.sh
-```
-
-### 设置 cron 定时（每天凌晨 4 点）
-
-```
-0 4 * * * bash ~/.claude/scripts/update.sh
-```
-
-日志自动写入 `~/.claude/update-logs/YYYY-MM-DD.log`，只保留最近 3 天。
-
-### macOS 注意事项
-
-- 依赖 Homebrew（`/opt/homebrew/bin`）和 npm global 路径，脚本启动时已自动写入 `PATH`
-- 若 cron 执行时报权限错误，可尝试授予完全磁盘访问权限：系统设置 → 隐私与安全性 → 完全磁盘访问 → 点击 `+` → 按 `⌘⇧G` 输入 `/usr/sbin/cron` 添加
-
----
-
-## 维护说明
-
-- 每次工作结束调用 `/d-stop`，由 Skill 自动维护 `PROJECT_STATUS.md`
-- 规范变更直接修改 `CLAUDE.md`，同步至 `~/.claude/CLAUDE.md`
-- Skill 迭代可使用 `/skill-creator` 进行评估和优化
+- 所有长期规则先改本仓库，再同步到目标目录
+- `~/.claude/` 和 `~/.codex/` 不作为规则源头
+- 全局入口保持薄，不绑定单一技术栈
+- 技术栈规则放入 `luxixi/`，由 Claude / Codex 共同引用
+- Claude Code 的 agents / skills 保持在 `claude/` 下，不直接迁移为 Codex 格式
+- 修改后根据需要提交并推送到 `git@github.com:flyluxixi/ai-configs.git`
