@@ -101,8 +101,8 @@
 | security-reviewer | 认证授权、用户输入处理、API 端点、敏感数据操作、SQL 注入防护 |
 | build-error-resolver | 构建失败、类型错误 |
 | 微信小程序开发者 | 微信小程序相关开发 |
-| /d-webman-log | Webman 项目日志初始化、配置 request_id 中间件；详细触发词见 `skills/d-webman-log/SKILL.md` |
-| /d-stop | 会话收尾、更新项目状态；详细触发词见 `skills/d-stop/SKILL.md` |
+| /d-webman-log | Webman 项目日志初始化、配置 request_id 中间件；详细触发词见 `~/.claude/skills/d-webman-log/SKILL.md` |
+| /d-stop | 会话收尾、更新项目状态；详细触发词见 `~/.claude/skills/d-stop/SKILL.md` |
 
 多个独立任务尽量并行调用，不串行等待。
 
@@ -110,7 +110,6 @@
 
 - Shell 命令使用 `rtk` 前缀执行
 - 查询第三方库文档优先使用 context7，不得凭训练记忆回答 API / 配置细节
-- Webman 文档 library ID：`/webman-php/webman-manual`
 - 只有 context7 明确返回“未找到”时才降级到 WebFetch
 
 ## Git 规范
@@ -130,14 +129,10 @@ Pull Request：
 1. 分析完整 commit 历史（不只看最新一条），用 `git diff [base-branch]...HEAD` 查看全量变更
 2. PR 描述包含：变更摘要、测试计划
 
-## 本配置仓库维护
-
-本项目是 `~/.claude/` 和 `~/.codex/` 的源仓库。修改本项目文件后，必须询问用户是否同步到全局目录，不得自动同步。
-
 ## 语言规范
 
 - 回复语言：简体中文
 - 代码：变量名、函数名、类名用英文
 - 注释与文档：简体中文
 
-@RTK.md
+@/Users/luxixi/.claude/RTK.md
