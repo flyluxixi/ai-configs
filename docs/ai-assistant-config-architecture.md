@@ -38,11 +38,13 @@
 
 不要把 PHP、Go、Nuxt、Flutter 等专项规则直接写入全局入口。
 
-### 3. 技术栈规则使用 rules + paths
+### 3. 技术栈规则使用 luxixi + 可选 rules 适配
 
-Claude Code 官方支持 `~/.claude/rules/` 机制。技术栈规则应放在 rules 目录，并通过 frontmatter 的 `paths` 限定触发范围。
+技术栈规则的中立源放在 `luxixi/`，Claude Code 与 Codex 共同引用。
 
-这样可以让 Claude Code 自动按文件路径加载相关规则，同时避免所有技术栈规则无条件进入上下文。
+Claude Code 官方支持 `~/.claude/rules/` 机制。如需自动按文件路径加载，可以在 `claude/rules/` 下创建带 frontmatter `paths` 的适配文件，再引用 `luxixi/` 中的中立规则。
+
+这样既能让 Claude Code 自动按文件路径加载相关规则，也避免把 Claude 专用 frontmatter 写进 Codex 共用规则源。
 
 ### 4. 项目 profile 作为兜底
 
@@ -74,7 +76,10 @@ ai-configs/
 │   │   ├── php-webman.md
 │   │   ├── nuxt3.md
 │   │   ├── flutter.md
-│   │   └── miniprogram.md
+│   │   ├── miniprogram.md
+│   │   ├── postgresql.md
+│   │   ├── redis.md
+│   │   └── nginx.md
 │   ├── agents/               # 同步到 ~/.claude/agents/
 │   ├── skills/               # 同步到 ~/.claude/skills/
 │   └── commands/             # 同步到 ~/.claude/commands/
@@ -94,6 +99,7 @@ ai-configs/
 ```text
 ~/.claude/
 ├── CLAUDE.md
+├── luxixi/
 ├── rules/
 ├── agents/
 ├── skills/
@@ -104,9 +110,11 @@ ai-configs/
 └── luxixi/
 ```
 
-## rules 文件写法
+## rules 适配文件写法
 
-每个技术栈规则文件都应带 `paths`，避免无条件加载。
+`luxixi/` 是 Claude / Codex 共用的中立规则源，不绑定 Claude Code 的 frontmatter 格式。
+
+如需使用 Claude Code 的 `~/.claude/rules/` 自动按路径加载机制，应在 `claude/rules/` 下新增适配文件，通过 `paths` 限定触发范围，再引用 `luxixi/` 中的中立规则。
 
 PHP / Webman 示例：
 
@@ -121,7 +129,7 @@ paths:
   - "process/**/*.php"
 ---
 
-# PHP / Webman 规则
+@~/.claude/luxixi/php-webman.md
 ```
 
 Go / Gin 示例：
@@ -136,7 +144,7 @@ paths:
   - "**/middleware/**/*.go"
 ---
 
-# Go / Gin 规则
+@~/.claude/luxixi/go.md
 ```
 
 PostgreSQL 示例：
@@ -152,10 +160,10 @@ paths:
   - "**/*.go"
 ---
 
-# PostgreSQL 规则
+@~/.claude/luxixi/postgresql.md
 ```
 
-`paths` 用于自动触发，但不能替代项目显式声明。
+`paths` 用于 Claude Code 自动触发，但不能替代项目显式声明。
 
 ## 项目显式声明
 
@@ -168,11 +176,10 @@ Go + Gin 项目的 `CLAUDE.md`：
 
 本项目使用 Go + Gin + PostgreSQL + Redis + Nginx。
 
-@~/.claude/rules/backend.md
-@~/.claude/rules/go-gin.md
-@~/.claude/rules/postgres.md
-@~/.claude/rules/redis.md
-@~/.claude/rules/nginx.md
+@~/.claude/luxixi/go.md
+@~/.claude/luxixi/postgresql.md
+@~/.claude/luxixi/redis.md
+@~/.claude/luxixi/nginx.md
 ```
 
 Go + Gin 项目的 `AGENTS.md`：
@@ -182,28 +189,25 @@ Go + Gin 项目的 `AGENTS.md`：
 
 本项目使用 Go + Gin + PostgreSQL + Redis + Nginx。
 
-@~/.codex/rules/backend.md
-@~/.codex/rules/go-gin.md
-@~/.codex/rules/postgres.md
-@~/.codex/rules/redis.md
-@~/.codex/rules/nginx.md
+@~/.codex/luxixi/go.md
+@~/.codex/luxixi/postgresql.md
+@~/.codex/luxixi/redis.md
+@~/.codex/luxixi/nginx.md
 ```
 
 PHP + Webman 项目只需替换对应规则：
 
 ```md
-@~/.claude/rules/backend.md
-@~/.claude/rules/php-webman.md
-@~/.claude/rules/postgres.md
-@~/.claude/rules/redis.md
-@~/.claude/rules/nginx.md
+@~/.claude/luxixi/php-webman.md
+@~/.claude/luxixi/postgresql.md
+@~/.claude/luxixi/redis.md
+@~/.claude/luxixi/nginx.md
 ```
 
 前端项目示例：
 
 ```md
-@~/.claude/rules/frontend.md
-@~/.claude/rules/nuxt3.md
+@~/.claude/luxixi/nuxt3.md
 ```
 
 ## agents 与 skills 的定位
@@ -239,4 +243,4 @@ codex/ 作为 Codex 适配层
 ~/.claude/ 和 ~/.codex/ 作为同步目标
 ```
 
-技术栈规则使用 `rules/` 命名，并通过 `paths` 实现自动触发；业务项目通过 `CLAUDE.md` / `AGENTS.md` 显式声明 profile，避免路径遗漏导致规则失效。
+技术栈规则以 `luxixi/` 作为中立源；Claude Code 如需自动触发，可在 `rules/` 下用 `paths` 创建适配文件。业务项目通过 `CLAUDE.md` / `AGENTS.md` 显式声明 profile，避免路径遗漏导致规则失效。

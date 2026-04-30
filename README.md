@@ -9,7 +9,7 @@
 本项目原本是 Claude Code + PHP/Webman 的个人配置仓库，现在正在升级为：
 
 - 同时支持 Claude Code 与 Codex
-- 同时覆盖 PHP Webman、Go Gin、Nuxt 3、Flutter、微信小程序等技术栈
+- 同时覆盖 PHP Webman、Go Gin、Nuxt 3、Flutter、微信小程序、PostgreSQL、Redis、Nginx 等技术栈
 - 将通用规则、技术栈规则、工具适配层拆开维护
 - 保留 Claude Code 专用 agents / skills，同时为 Codex 提供独立入口
 
@@ -25,6 +25,14 @@ ai-configs/
 │   ├── CLAUDE.md             # 同步到 ~/.claude/CLAUDE.md
 │   ├── rules/                # 同步到 ~/.claude/rules/
 │   ├── luxixi/               # Claude / Codex 共用的中立规则源
+│   │   ├── go.md
+│   │   ├── php-webman.md
+│   │   ├── nuxt3.md
+│   │   ├── flutter.md
+│   │   ├── miniprogram.md
+│   │   ├── postgresql.md
+│   │   ├── redis.md
+│   │   └── nginx.md
 │   ├── agents/               # Claude Code 专用 agents
 │   ├── skills/               # Claude Code 专用 skills
 │   └── commands/             # Claude Code 专用 commands
@@ -69,8 +77,18 @@ ai-configs/
 - `nuxt3.md`
 - `flutter.md`
 - `miniprogram.md`
+- `postgresql.md`
+- `redis.md`
+- `nginx.md`
 
 `codex/luxixi` 应作为 symlink 指向 `../claude/luxixi`，保证中立规则只维护一份。
+
+在本机 macOS 环境中，`~/.claude/luxixi` 和 `~/.codex/luxixi` 也可以直接 symlink 到源库：
+
+```bash
+ln -sfn /Users/luxixi/projects/ai-configs/claude/luxixi /Users/luxixi/.claude/luxixi
+ln -sfn /Users/luxixi/projects/ai-configs/claude/luxixi /Users/luxixi/.codex/luxixi
+```
 
 ### Claude Code 专用资产
 
