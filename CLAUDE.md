@@ -4,6 +4,8 @@
 
 `~/.claude/` 与 `~/.codex/` 是同步目标，不作为手工维护源头。所有长期规则先改本仓库，再按用户要求同步。
 
+先读项目 `README.md`、`CLAUDE.md`、`AGENTS.md`、`PROJECT_STATUS.md` 和相关文档。
+
 ## 目录职责
 
 - `claude/CLAUDE.md`：Claude Code 全局入口源文件，同步目标为 `~/.claude/CLAUDE.md`
