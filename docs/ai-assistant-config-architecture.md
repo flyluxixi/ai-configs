@@ -83,11 +83,12 @@ ai-configs/
 │   │   ├── redis.md
 │   │   └── nginx.md
 │   ├── agents/               # 同步到 ~/.claude/agents/
-│   ├── skills/               # 同步到 ~/.claude/skills/
+│   ├── skills/               # Claude / Codex 共用 skills 源
 │   └── commands/             # 同步到 ~/.claude/commands/
 ├── codex/
 │   ├── AGENTS.md             # 同步到 ~/.codex/AGENTS.md
-│   └── luxixi -> ../claude/luxixi
+│   ├── luxixi -> ../claude/luxixi
+│   └── skills -> ../claude/skills
 ├── scripts/
 │   ├── update.sh             # Claude Code 专用每日更新脚本，保持现有职责
 │   ├── sync-claude.sh        # 同步本仓库配置到 ~/.claude/
@@ -109,7 +110,8 @@ ai-configs/
 
 ~/.codex/
 ├── AGENTS.md
-└── luxixi/
+├── luxixi/
+└── skills/
 ```
 
 ## rules 适配文件写法
@@ -214,14 +216,14 @@ PHP + Webman 项目只需替换对应规则：
 
 ## agents 与 skills 的定位
 
-现有 `agents/` 和 `skills/` 仍视为 Claude Code 专用形态：
+现有 `agents/` 仍视为 Claude Code 专用形态；`skills/` 以 `claude/skills/` 为源，Codex 通过 `codex/skills -> ../claude/skills` 复用。
 
 - Claude agent 文件包含 `tools`、`model`、`color` 等 Claude 专用 frontmatter。
-- Claude skill 文件包含 `/d-stop`、`/d-webman-log` 等 Claude 指令语义。
+- skill 文件可以包含 `/d-stop`、`/d-webman-log` 等个人命令语义；如果 Claude / Codex 均有同名 skill，则视为跨助手能力。
 
-其中的专家知识和流程可以复用，但文件格式不应直接视为 Codex 通用。
+Claude agent 中的专家知识和流程可以复用，但 agent 文件格式不应直接视为 Codex 通用。
 
-后续如需让 Codex 复用相同能力，应先抽取中立知识源，再分别生成 Claude / Codex 适配文件。
+后续如需让 Codex 复用 Claude agent 能力，应先抽取中立知识源，再分别生成 Claude / Codex 适配文件。
 
 ## 实施顺序
 
@@ -229,7 +231,7 @@ PHP + Webman 项目只需替换对应规则：
 2. 新增 `claude/luxixi/`，拆分 Claude / Codex 共用的中立技术栈规则。
 3. 新增 `claude/CLAUDE.md` 和 `codex/AGENTS.md`。
 4. 将 `codex/luxixi` 设为指向 `../claude/luxixi` 的 symlink，确保中立规则只维护一份。
-5. 将现有 `agents/`、`skills/` 保持在 `claude/` 下，作为 Claude Code 专用资产。
+5. 将现有 `agents/` 保持在 `claude/` 下，作为 Claude Code 专用资产；`skills/` 由 `codex/skills` symlink 复用。
 6. 新增 `scripts/sync-claude.sh`、`scripts/sync-codex.sh`、`scripts/sync-all.sh`。
 7. 保持 `scripts/update.sh` 原职责不变。
 8. 更新 README，说明本仓库是 Claude Code / Codex 共享配置源。
