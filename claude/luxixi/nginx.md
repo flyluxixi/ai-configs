@@ -4,6 +4,12 @@
 
 生成或修改配置前先读取现有 `nginx.conf`、站点配置、upstream、日志格式、证书路径、部署方式和应用监听端口，确认配置所属层级与线上影响。
 
+## Nginx 平台能力
+
+必须优先使用以下平台特性，不得静默绕开：
+
+`try_files`、`limit_req`、`gzip`、upstream 缓存、`proxy_set_header`、`client_max_body_size`
+
 ## 禁止事项
 
 - 禁止直接改线上配置后 reload；必须先 `nginx -t`，确认无误再 reload
