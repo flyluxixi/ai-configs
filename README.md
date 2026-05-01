@@ -11,7 +11,7 @@
 - 同时支持 Claude Code 与 Codex
 - 同时覆盖 PHP Webman、Go Gin、Nuxt 3、Flutter、微信小程序、PostgreSQL、Redis、Nginx 等技术栈
 - 将通用规则、技术栈规则、工具适配层拆开维护
-- 保留 Claude Code 专用 agents / skills，同时为 Codex 提供独立入口
+- 分别维护 Claude Code 与 Codex 的入口和 skills，共用中立技术栈规则源
 
 详细规划见 [docs/ai-assistant-config-architecture.md](docs/ai-assistant-config-architecture.md)。
 
@@ -40,6 +40,7 @@ ai-configs/
 │   └── commands/             # Claude Code 专用 commands
 ├── codex/
 │   ├── AGENTS.md             # 同步到 ~/.codex/AGENTS.md
+│   ├── skills/               # Codex 专用 skills，同步到 ~/.codex/skills/
 │   └── luxixi -> ../claude/luxixi
 ├── scripts/
 │   ├── update.sh             # Claude Code 生态更新脚本
@@ -102,25 +103,33 @@ ln -sfn ~/projects/ai-configs/claude/luxixi ~/.codex/luxixi
 - `claude/CLAUDE.md`
 - `codex/AGENTS.md`
 - `claude/luxixi/*.md`
+- `claude/skills/*/SKILL.md`
+- `codex/skills/*/SKILL.md`
 
 同步规则：
 
 - 修改 `claude/CLAUDE.md` 后，手动同步到 `~/.claude/CLAUDE.md`
 - 修改 `codex/AGENTS.md` 后，手动同步到 `~/.codex/AGENTS.md`
 - 修改 `claude/luxixi/*.md` 后不需要同步
+- 修改 `claude/skills/*/SKILL.md` 后，按需同步到 `~/.claude/skills/`
+- 修改 `codex/skills/*/SKILL.md` 后，按需同步到 `~/.codex/skills/`
 - 不直接修改 `~/.claude/luxixi`、`~/.codex/luxixi` 或 `codex/luxixi`
 
-### Claude Code 专用资产
+### Agent / Skill 资产
 
-`claude/agents/` 和 `claude/skills/` 保留 Claude Code 专用格式，不要求与 Codex skills 保持一致。
+`claude/agents/` 和 `claude/skills/` 保留 Claude Code 专用格式。`codex/skills/` 保留 Codex 专用 skill，允许与 Claude Code skills 内容相近，但涉及路径和入口文件时必须使用 Codex 侧约定。
 
 当前已有：
 
 - `claude/agents/php-expert.md`：PHP / Webman 专项 agent
 - `claude/skills/d-stop/SKILL.md`：会话收尾，维护 `PROJECT_STATUS.md`
 - `claude/skills/d-webman-log/SKILL.md`：Webman 日志初始化
+- `claude/skills/d-nginx/SKILL.md`：Nginx 薄 skill，引用 `~/.claude/luxixi/nginx.md`
+- `codex/skills/d-stop/SKILL.md`：Codex 会话收尾
+- `codex/skills/d-webman-log/SKILL.md`：Codex Webman 日志初始化
+- `codex/skills/d-nginx/SKILL.md`：Codex Nginx 薄 skill，引用 `~/.codex/luxixi/nginx.md`
 
-这些文件里的专家知识可以复用，但格式不直接视为 Codex 通用。
+这些文件里的专家知识可以复用，但不要直接复制后不校正路径、入口文件名和工具行为。
 
 ## 现有文件说明
 
@@ -144,9 +153,9 @@ ln -sfn ~/projects/ai-configs/claude/luxixi ~/.codex/luxixi
 
 ## 维护原则
 
-- 长期规则源头只维护 `claude/CLAUDE.md`、`codex/AGENTS.md` 和 `claude/luxixi/*.md`
+- 长期规则源头只维护 `claude/CLAUDE.md`、`codex/AGENTS.md`、`claude/luxixi/*.md` 和两侧 `skills/*/SKILL.md`
 - `~/.claude/` 和 `~/.codex/` 不作为规则源头
 - 全局入口保持薄，不绑定单一技术栈
 - 技术栈规则放入 `luxixi/`，由 Claude / Codex 共同引用
-- Claude Code 的 agents / skills 保持在 `claude/` 下，不直接迁移为 Codex 格式
+- Claude Code 与 Codex 的 skills 可以内容相近，但路径引用和入口文件名必须分别适配
 - 修改后根据需要提交并推送到 `git@github.com:flyluxixi/ai-configs.git`
