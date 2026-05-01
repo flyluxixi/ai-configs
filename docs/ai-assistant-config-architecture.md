@@ -9,7 +9,7 @@
 1. 除 Claude Code 外，也需要支持 Codex。
 2. 技术栈从 PHP + Webman 扩展为多技术栈：
    - 后端：PHP + Webman、Go + Gin
-   - 前端：微信小程序、Nuxt 3、Flutter
+   - 前端：微信小程序、Nuxt 4、Flutter
    - 数据库：PostgreSQL
    - 缓存 / 队列：Redis
    - Web Server：Nginx
@@ -76,7 +76,7 @@ ai-configs/
 │   ├── luxixi/               # Claude / Codex 共用的中立规则源
 │   │   ├── go.md
 │   │   ├── php-webman.md
-│   │   ├── nuxt3.md
+│   │   ├── nuxt4.md
 │   │   ├── flutter.md
 │   │   ├── miniprogram.md
 │   │   ├── postgresql.md
@@ -209,7 +209,7 @@ PHP + Webman 项目只需替换对应规则：
 前端项目示例：
 
 ```md
-@~/.claude/luxixi/nuxt3.md
+@~/.claude/luxixi/nuxt4.md
 ```
 
 ## agents 与 skills 的定位

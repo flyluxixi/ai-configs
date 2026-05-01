@@ -1,6 +1,6 @@
 # Nuxt 4 规则
 
-适用范围：所有 Web 项目（管理系统、官网、H5、落地页）。后端接口、数据库、缓存、Nginx 等规则分别由对应项目或技术栈规则声明。
+适用范围：Nuxt 4 项目（管理系统、官网、H5、落地页等）。后端接口、数据库、缓存、Nginx 等规则分别由对应项目或技术栈规则声明。
 
 ## 技术栈与环境
 
@@ -44,8 +44,12 @@ Nuxt 4 采用 `app/` 目录结构，应用代码放在 `app/` 下：
 │   ├── components/
 │   ├── composables/
 │   ├── layouts/
+│   ├── middleware/
 │   ├── plugins/
-│   └── assets/
+│   ├── assets/
+│   ├── utils/
+│   ├── app.vue
+│   └── app.config.ts
 ├── server/
 │   └── api/
 ├── shared/
@@ -53,13 +57,14 @@ Nuxt 4 采用 `app/` 目录结构，应用代码放在 `app/` 下：
 └── package.json
 ```
 
-- 禁止在 `app/` 目录外放置应用层代码
-- 新项目必须使用 `app/` 目录结构，不使用 Nuxt 3 扁平结构
+- 禁止在 `app/` 目录外放置客户端应用层代码
+- 新项目必须使用 `app/` 目录结构，不使用旧版扁平结构
 
 ## 数据获取与状态
 
 - SSR 首屏数据必须使用 Nuxt 数据获取机制（`useFetch` / `useAsyncData`），并处理 pending / error / empty 状态
-- 同一 key 的数据获取自动共享，禁止重复发起相同 key 的请求
+- 相同 key 的 `useAsyncData` / `useFetch` 必须对应同一份数据和一致选项，禁止用相同 key 获取不同数据
+- 动态路由页面的 `useAsyncData` key 必须包含影响数据结果的 route params / query；能用 `useFetch` 自动生成 key 时优先用 `useFetch`
 - 客户端交互请求必须复用项目已有 API client 或 composable
 - 涉及鉴权、用户信息、租户、权限等状态时，必须在服务端渲染阶段与客户端保持一致，不得出现 hydration mismatch
 
@@ -71,4 +76,8 @@ Nuxt 4 采用 `app/` 目录结构，应用代码放在 `app/` 下：
 ## 文档查询
 
 - 查询 Nuxt、Vue、Nitro、Pinia、UI 模块等 API 时，必须优先使用 context7、官方文档、项目锁定版本文档或源码
+- Nuxt 4 文档 context7 library ID：`/websites/nuxt_4_x`
+- Vue 文档 context7 library ID：`/vuejs/vue`
+- Nitro 文档 context7 library ID：`/unjs/nitro`
+- Pinia 文档 context7 library ID：`/vuejs/pinia`
 - 不凭记忆假设 Nuxt API、模块配置、渲染模式或运行时行为

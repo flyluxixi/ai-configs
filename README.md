@@ -9,7 +9,7 @@
 本项目原本是 Claude Code + PHP/Webman 的个人配置仓库，现在正在升级为：
 
 - 同时支持 Claude Code 与 Codex
-- 同时覆盖 PHP Webman、Go Gin、Nuxt 3、Flutter、微信小程序、PostgreSQL、Redis、Nginx 等技术栈
+- 同时覆盖 PHP Webman、Go Gin、Nuxt 4、Flutter、微信小程序、PostgreSQL、Redis、Nginx 等技术栈
 - 将通用规则、技术栈规则、工具适配层拆开维护
 - 分别维护 Claude Code 与 Codex 的入口和 skills，共用中立技术栈规则源
 
@@ -29,7 +29,7 @@ ai-configs/
 │   ├── luxixi/               # Claude / Codex 共用的中立规则源
 │   │   ├── go.md
 │   │   ├── php-webman.md
-│   │   ├── nuxt3.md
+│   │   ├── nuxt4.md
 │   │   ├── flutter.md
 │   │   ├── miniprogram.md
 │   │   ├── postgresql.md
@@ -78,7 +78,7 @@ ai-configs/
 
 - `go.md`
 - `php-webman.md`
-- `nuxt3.md`
+- `nuxt4.md`
 - `flutter.md`
 - `miniprogram.md`
 - `postgresql.md`
