@@ -86,12 +86,29 @@ ai-configs/
 
 `codex/luxixi` 应作为 symlink 指向 `../claude/luxixi`，保证中立规则只维护一份。
 
-在本机 macOS 环境中，`~/.claude/luxixi` 和 `~/.codex/luxixi` 也可以直接 symlink 到源库：
+在本机 macOS 环境中，`~/.claude/luxixi` 和 `~/.codex/luxixi` 已直接 symlink 到源库：
 
 ```bash
 ln -sfn ~/projects/ai-configs/claude/luxixi ~/.claude/luxixi
 ln -sfn ~/projects/ai-configs/claude/luxixi ~/.codex/luxixi
 ```
+
+因此修改 `claude/luxixi/*.md` 后无需同步，Claude Code 与 Codex 会通过 symlink 直接读取最新内容。
+
+### 长期维护源头
+
+长期维护源头只有：
+
+- `claude/CLAUDE.md`
+- `codex/AGENTS.md`
+- `claude/luxixi/*.md`
+
+同步规则：
+
+- 修改 `claude/CLAUDE.md` 后，手动同步到 `~/.claude/CLAUDE.md`
+- 修改 `codex/AGENTS.md` 后，手动同步到 `~/.codex/AGENTS.md`
+- 修改 `claude/luxixi/*.md` 后不需要同步
+- 不直接修改 `~/.claude/luxixi`、`~/.codex/luxixi` 或 `codex/luxixi`
 
 ### Claude Code 专用资产
 
@@ -127,7 +144,7 @@ ln -sfn ~/projects/ai-configs/claude/luxixi ~/.codex/luxixi
 
 ## 维护原则
 
-- 所有长期规则先改本仓库，再同步到目标目录
+- 长期规则源头只维护 `claude/CLAUDE.md`、`codex/AGENTS.md` 和 `claude/luxixi/*.md`
 - `~/.claude/` 和 `~/.codex/` 不作为规则源头
 - 全局入口保持薄，不绑定单一技术栈
 - 技术栈规则放入 `luxixi/`，由 Claude / Codex 共同引用

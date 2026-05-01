@@ -17,9 +17,12 @@
 
 ## 维护规则
 
-- 修改 `claude/CLAUDE.md`、`codex/AGENTS.md` 或 `claude/luxixi/` 后，先提交源库；是否同步到 `~/.claude/` / `~/.codex/` 由用户明确决定
+- 长期维护源头：`claude/CLAUDE.md`、`codex/AGENTS.md`、`claude/luxixi/*.md`
+- 修改 `claude/CLAUDE.md` 后，需手动同步到 `~/.claude/CLAUDE.md`
+- 修改 `codex/AGENTS.md` 后，需手动同步到 `~/.codex/AGENTS.md`
+- `~/.claude/luxixi` 与 `~/.codex/luxixi` 已 symlink 到 `claude/luxixi`，修改 `claude/luxixi/*.md` 后无需同步
+- 不要直接修改 `~/.claude/luxixi`、`~/.codex/luxixi` 或 `codex/luxixi`
 - 不要把 `scripts/update.sh` 扩展成 Codex 同步脚本；Codex 同步应由独立 `sync-codex.sh` 负责
-- 不要在 `codex/luxixi` 下直接写文件；应修改 `claude/luxixi/`
 - 不要把 Claude Code 专用 frontmatter、agent、skill 格式写进 `claude/luxixi/` 中立规则源
 - 技术栈规则文件应只写对应技术栈内的约束，跨技术栈规则应拆到独立文件
 - `PROJECT_STATUS.md` 是本地会话状态文件，不提交
