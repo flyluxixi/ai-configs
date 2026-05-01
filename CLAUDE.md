@@ -11,8 +11,7 @@
 - `~/.claude/RTK.md` 与 `~/.codex/RTK.md`：本机 RTK 工具规则文件，均真实存在；入口文件引用时使用 `@~`，不要硬编码用户名路径
 - `claude/luxixi/`：Claude / Codex 共用的中立技术栈规则源
 - `codex/luxixi`：指向 `../claude/luxixi` 的 symlink，不维护第二份规则
-- `claude/skills/`：Claude / Codex 共用 skill 源；`codex/skills` 指向 `../claude/skills`
-- `claude/agents/`、`claude/commands/`：Claude Code 专用资产
+- `claude/agents/`、`claude/skills/`、`claude/commands/`：Claude Code 专用资产，不要求与 Codex skills 保持一致
 - `scripts/update.sh`：Claude Code 生态更新脚本，只负责更新 Claude CLI 和第三方 Claude agents / skills / commands
 - `docs/`：架构规划和维护说明
 

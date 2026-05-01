@@ -36,12 +36,11 @@ ai-configs/
 │   │   ├── redis.md
 │   │   └── nginx.md
 │   ├── agents/               # Claude Code 专用 agents
-│   ├── skills/               # Claude / Codex 共用 skills 源
+│   ├── skills/               # Claude Code 专用 skills
 │   └── commands/             # Claude Code 专用 commands
 ├── codex/
 │   ├── AGENTS.md             # 同步到 ~/.codex/AGENTS.md
-│   ├── luxixi -> ../claude/luxixi
-│   └── skills -> ../claude/skills
+│   └── luxixi -> ../claude/luxixi
 ├── scripts/
 │   ├── update.sh             # Claude Code 生态更新脚本
 │   ├── sync-claude.sh        # 同步配置到 ~/.claude/
@@ -94,11 +93,9 @@ ln -sfn ~/projects/ai-configs/claude/luxixi ~/.claude/luxixi
 ln -sfn ~/projects/ai-configs/claude/luxixi ~/.codex/luxixi
 ```
 
-### Skills 与 Claude Code 专用资产
+### Claude Code 专用资产
 
-`claude/skills/` 作为 Claude / Codex 共用 skill 源；`codex/skills` 指向 `../claude/skills`，避免维护两份。
-
-`claude/agents/` 保留 Claude Code 专用格式。
+`claude/agents/` 和 `claude/skills/` 保留 Claude Code 专用格式，不要求与 Codex skills 保持一致。
 
 当前已有：
 
@@ -106,7 +103,7 @@ ln -sfn ~/projects/ai-configs/claude/luxixi ~/.codex/luxixi
 - `claude/skills/d-stop/SKILL.md`：会话收尾，维护 `PROJECT_STATUS.md`
 - `claude/skills/d-webman-log/SKILL.md`：Webman 日志初始化
 
-`claude/agents/` 中的专家知识可以复用，但 agent 文件格式不直接视为 Codex 通用。
+这些文件里的专家知识可以复用，但格式不直接视为 Codex 通用。
 
 ## 现有文件说明
 
@@ -134,5 +131,5 @@ ln -sfn ~/projects/ai-configs/claude/luxixi ~/.codex/luxixi
 - `~/.claude/` 和 `~/.codex/` 不作为规则源头
 - 全局入口保持薄，不绑定单一技术栈
 - 技术栈规则放入 `luxixi/`，由 Claude / Codex 共同引用
-- Claude Code 的 agents / commands 保持在 `claude/` 下，不直接迁移为 Codex 格式；skills 由 Claude / Codex 通过 symlink 复用
+- Claude Code 的 agents / skills 保持在 `claude/` 下，不直接迁移为 Codex 格式
 - 修改后根据需要提交并推送到 `git@github.com:flyluxixi/ai-configs.git`
