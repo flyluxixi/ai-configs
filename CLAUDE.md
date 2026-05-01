@@ -29,6 +29,7 @@
 - 不要把 Claude Code 或 Codex 专用 frontmatter、agent、skill 格式写进 `claude/luxixi/` 中立规则源
 - 技术栈规则文件应只写对应技术栈内的约束，跨技术栈规则应拆到独立文件
 - `PROJECT_STATUS.md` 是本地会话状态文件，不提交
+- `AGENTS.md` 中引用文件需要使用绝对路径，`CLAUDE.md` 可以使用相对路径
 
 ## 文档清单
 
