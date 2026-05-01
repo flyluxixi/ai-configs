@@ -99,4 +99,4 @@ Pull Request：
 - 代码：变量名、函数名、类名用英文
 - 注释与文档：简体中文
 
-@~/.codex/RTK.md
+@/Users/luxixi/.codex/RTK.md
