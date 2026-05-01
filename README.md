@@ -89,8 +89,8 @@ ai-configs/
 在本机 macOS 环境中，`~/.claude/luxixi` 和 `~/.codex/luxixi` 也可以直接 symlink 到源库：
 
 ```bash
-ln -sfn /Users/luxixi/projects/ai-configs/claude/luxixi /Users/luxixi/.claude/luxixi
-ln -sfn /Users/luxixi/projects/ai-configs/claude/luxixi /Users/luxixi/.codex/luxixi
+ln -sfn ~/projects/ai-configs/claude/luxixi ~/.claude/luxixi
+ln -sfn ~/projects/ai-configs/claude/luxixi ~/.codex/luxixi
 ```
 
 ### Claude Code 专用资产

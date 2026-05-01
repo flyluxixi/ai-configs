@@ -8,6 +8,7 @@
 
 - `claude/CLAUDE.md`：Claude Code 全局入口源文件，同步目标为 `~/.claude/CLAUDE.md`
 - `codex/AGENTS.md`：Codex 全局入口源文件，同步目标为 `~/.codex/AGENTS.md`
+- `~/.claude/RTK.md` 与 `~/.codex/RTK.md`：本机 RTK 工具规则文件，均真实存在；入口文件引用时使用 `@~`，不要硬编码用户名路径
 - `claude/luxixi/`：Claude / Codex 共用的中立技术栈规则源
 - `codex/luxixi`：指向 `../claude/luxixi` 的 symlink，不维护第二份规则
 - `claude/agents/`、`claude/skills/`、`claude/commands/`：Claude Code 专用资产
