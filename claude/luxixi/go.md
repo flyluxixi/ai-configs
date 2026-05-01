@@ -56,7 +56,7 @@
 
 ## 文档查询
 
-- Gin 文档 Context7 library ID：`/gin-gonic/gin`
+- Gin 文档 context7 library ID：`/gin-gonic/gin`
 - 查询 Go 标准库时使用 `pkg.go.dev`、当前 Go 版本文档或本机源码
-- 查询 Gin 或第三方 Go module API 时，必须先使用 Context7、官方文档、项目 `go.mod` 锁定版本或源码
+- 查询 Gin 或第三方 Go module API 时，必须先使用 context7、官方文档、项目 `go.mod` 锁定版本或源码
 - 不凭记忆假设 Gin、中间件、ORM、配置库的具体 API 或行为
