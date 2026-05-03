@@ -24,7 +24,7 @@ ai-configs/
 ├── CLAUDE.md                 # 本仓库给 Claude Code 使用的项目级入口
 ├── AGENTS.md                 # 本仓库给 Codex 使用的项目级入口
 ├── claude/
-│   ├── CLAUDE.md             # 同步到 ~/.claude/CLAUDE.md
+│   ├── CLAUDE.md             # ~/.claude/CLAUDE.md 已 symlink 到此
 │   ├── rules/                # 同步到 ~/.claude/rules/
 │   ├── luxixi/               # Claude / Codex 共用的中立规则源
 │   │   ├── go.md
@@ -39,26 +39,23 @@ ai-configs/
 │   ├── skills/               # Claude Code 专用 skills
 │   └── commands/             # Claude Code 专用 commands
 ├── codex/
-│   ├── AGENTS.md             # 同步到 ~/.codex/AGENTS.md
-│   ├── skills/               # Codex 专用 skills，同步到 ~/.codex/skills/
+│   ├── AGENTS.md             # ~/.codex/AGENTS.md 已 symlink 到此
+│   ├── skills/               # Codex 专用 skills，修改后手动 cp 到 ~/.codex/skills/
 │   └── luxixi -> ../claude/luxixi
 ├── scripts/
-│   ├── update.sh             # Claude Code 生态更新脚本
-│   ├── sync-claude.sh        # 同步配置到 ~/.claude/
-│   ├── sync-codex.sh         # 同步配置到 ~/.codex/
-│   └── sync-all.sh           # 同步两边
+│   └── update.sh             # Claude Code 生态更新脚本（crontab 直接指向此文件）
 ├── docs/
 └── README.md
 ```
 
-当前仓库仍处于迁移阶段，部分目标目录和同步脚本尚未落地。
+当前仓库仍处于迁移阶段，`claude/rules/`、`claude/commands/` 尚未落地。
 
 ## 规则分层
 
 ### Claude / Codex 入口
 
-- `claude/CLAUDE.md`：Claude Code 全局入口，最终同步到 `~/.claude/CLAUDE.md`
-- `codex/AGENTS.md`：Codex 全局入口，最终同步到 `~/.codex/AGENTS.md`
+- `claude/CLAUDE.md`：Claude Code 全局入口，`~/.claude/CLAUDE.md` 已 symlink 到此
+- `codex/AGENTS.md`：Codex 全局入口，`~/.codex/AGENTS.md` 已 symlink 到此
 - 根目录 `CLAUDE.md` / `AGENTS.md`：本仓库自身的项目级入口，不同步到全局目录
 
 入口文件只放所有项目都成立的规则，例如：
@@ -108,11 +105,10 @@ ln -sfn ~/projects/ai-configs/claude/luxixi ~/.codex/luxixi
 
 同步规则：
 
-- 修改 `claude/CLAUDE.md` 后，手动同步到 `~/.claude/CLAUDE.md`
-- 修改 `codex/AGENTS.md` 后，手动同步到 `~/.codex/AGENTS.md`
+- 修改 `claude/CLAUDE.md` / `codex/AGENTS.md` 后无需额外操作（symlink 自动生效）
 - 修改 `claude/luxixi/*.md` 后不需要同步
-- 修改 `claude/skills/*/SKILL.md` 后，按需同步到 `~/.claude/skills/`
-- 修改 `codex/skills/*/SKILL.md` 后，按需同步到 `~/.codex/skills/`
+- 修改 `claude/skills/*/SKILL.md` 后，手动 `cp` 到 `~/.claude/skills/<skill>/`
+- 修改 `codex/skills/*/SKILL.md` 后，手动 `cp` 到 `~/.codex/skills/<skill>/`
 - 不直接修改 `~/.claude/luxixi`、`~/.codex/luxixi` 或 `codex/luxixi`
 
 ### Agent / Skill 资产
@@ -127,7 +123,7 @@ ln -sfn ~/projects/ai-configs/claude/luxixi ~/.codex/luxixi
 - `claude/skills/d-nginx/SKILL.md`：Nginx 薄 skill，引用 `~/.claude/luxixi/nginx.md`
 - `codex/skills/d-stop/SKILL.md`：Codex 会话收尾
 - `codex/skills/d-webman-log/SKILL.md`：Codex Webman 日志初始化
-- `codex/skills/d-nginx/SKILL.md`：Codex Nginx 薄 skill，引用 `~/.codex/luxixi/nginx.md`
+- `codex/skills/d-nginx/SKILL.md`：Codex Nginx skill，显式读取 `~/.codex/luxixi/nginx.md`（Codex 不支持 `@` 自动展开）
 
 这些文件里的专家知识可以复用，但不要直接复制后不校正路径、入口文件名和工具行为。
 
@@ -149,7 +145,7 @@ ln -sfn ~/projects/ai-configs/claude/luxixi ~/.codex/luxixi
 - 拉取第三方 Claude agents / skills / commands
 - 安装到 `~/.claude/`
 
-它不负责 Codex，也不承担本仓库到 `~/.claude/` / `~/.codex/` 的同步职责。同步职责后续由 `sync-claude.sh`、`sync-codex.sh`、`sync-all.sh` 承担。
+它不负责 Codex，也不承担本仓库到 `~/.claude/` / `~/.codex/` 的同步职责。入口文件通过 symlink 自动生效，skills 修改后手动 `cp`。
 
 ## 维护原则
 

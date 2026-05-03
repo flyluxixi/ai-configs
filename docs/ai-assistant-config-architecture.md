@@ -89,10 +89,7 @@ ai-configs/
 │   ├── AGENTS.md             # 同步到 ~/.codex/AGENTS.md
 │   └── luxixi -> ../claude/luxixi
 ├── scripts/
-│   ├── update.sh             # Claude Code 专用每日更新脚本，保持现有职责
-│   ├── sync-claude.sh        # 同步本仓库配置到 ~/.claude/
-│   ├── sync-codex.sh         # 同步本仓库配置到 ~/.codex/
-│   └── sync-all.sh           # 同步两边
+│   └── update.sh             # Claude Code 专用每日更新脚本，保持现有职责
 └── docs/
 ```
 
@@ -191,13 +188,14 @@ Go + Gin 项目的 `AGENTS.md`：
 
 本项目使用 Go + Gin + PostgreSQL + Redis + Nginx。
 
-@~/.codex/luxixi/go.md
-@~/.codex/luxixi/postgresql.md
-@~/.codex/luxixi/redis.md
-@~/.codex/luxixi/nginx.md
+执行前必须先读取以下规则文件：
+- `~/.codex/luxixi/go.md`
+- `~/.codex/luxixi/postgresql.md`
+- `~/.codex/luxixi/redis.md`
+- `~/.codex/luxixi/nginx.md`
 ```
 
-PHP + Webman 项目只需替换对应规则：
+PHP + Webman 项目只需替换对应规则（Claude 侧，`@` 自动展开）：
 
 ```md
 @~/.claude/luxixi/php-webman.md
@@ -206,11 +204,42 @@ PHP + Webman 项目只需替换对应规则：
 @~/.claude/luxixi/nginx.md
 ```
 
-前端项目示例：
+PHP + Webman 项目的 `AGENTS.md`（Codex 侧，需显式读取）：
+
+```md
+执行前必须先读取以下规则文件：
+- `~/.codex/luxixi/php-webman.md`
+- `~/.codex/luxixi/postgresql.md`
+- `~/.codex/luxixi/redis.md`
+- `~/.codex/luxixi/nginx.md`
+```
+
+前端项目示例（Claude 侧）：
 
 ```md
 @~/.claude/luxixi/nuxt4.md
 ```
+
+## @ 语法在 Claude Code 与 Codex 中的差异
+
+Claude Code 与 Codex 对 `@path` 语法的处理**完全不同**，编写入口文件和 skills 时必须区分对待。
+
+| 场景 | Claude Code | Codex |
+|------|-------------|-------|
+| `CLAUDE.md` / `AGENTS.md` 中的 `@path` | 会话启动时**自动展开**，文件内容注入上下文 | **不自动展开**，仅作路径提示，模型不会主动读取 |
+| Skills 中的 `@path` | skill 被调用时**自动展开** | **不自动展开**，模型不会主动读取 |
+
+Codex 侧需要将 `@path` 改为显式读取指令：
+
+```
+# 错误（Codex 不会自动加载）
+@~/.codex/luxixi/nginx.md
+
+# 正确
+首先读取 `~/.codex/luxixi/nginx.md`，获取完整规范。
+```
+
+注意：项目级 `AGENTS.md` 中引用技术栈规则时同样适用此规则，不能使用 `@` 语法。
 
 ## agents 与 skills 的定位
 
@@ -230,7 +259,7 @@ PHP + Webman 项目只需替换对应规则：
 3. 新增 `claude/CLAUDE.md` 和 `codex/AGENTS.md`。
 4. 将 `codex/luxixi` 设为指向 `../claude/luxixi` 的 symlink，确保中立规则只维护一份。
 5. 将现有 `agents/`、`skills/` 保持在 `claude/` 下，作为 Claude Code 专用资产。
-6. 新增 `scripts/sync-claude.sh`、`scripts/sync-codex.sh`、`scripts/sync-all.sh`。
+6. 将 `~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md` 改为 symlink 指向本仓库对应文件，无需 sync 脚本。
 7. 保持 `scripts/update.sh` 原职责不变。
 8. 更新 README，说明本仓库是 Claude Code / Codex 共享配置源。
 
