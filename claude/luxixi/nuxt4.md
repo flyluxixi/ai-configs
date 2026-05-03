@@ -64,7 +64,7 @@ Nuxt 4 采用 `app/` 目录结构，应用代码放在 `app/` 下：
 
 - SSR 首屏数据必须使用 Nuxt 数据获取机制（`useFetch` / `useAsyncData`），并处理 pending / error / empty 状态
 - 相同 key 的 `useAsyncData` / `useFetch` 必须对应同一份数据和一致选项，禁止用相同 key 获取不同数据
-- 动态路由页面的 `useAsyncData` key 必须包含影响数据结果的 route params / query；能用 `useFetch` 自动生成 key 时优先用 `useFetch`
+- 动态路由页面的 `useAsyncData` key 必须包含影响数据结果的 route params / query；能让 `useFetch` 自动生成 key 时，禁止手动指定 key
 - 客户端交互请求必须复用项目已有 API client 或 composable
 - 涉及鉴权、用户信息、租户、权限等状态时，必须在服务端渲染阶段与客户端保持一致，不得出现 hydration mismatch
 

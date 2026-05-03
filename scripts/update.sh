@@ -1,9 +1,11 @@
 #!/bin/bash
 
 # ============================================================
-# Claude Code 配置自动更新脚本 v12-mac
+# AI 工具配置自动更新脚本 v13-mac
 #
-# 管理五个仓库：
+# 更新内容：
+#   0. Claude CLI 本身
+#   0.5. Codex CLI 本身
 #   1. everything-claude-code          — agents / skills / commands
 #   2. superpowers                     — systematic-debugging / verification-before-completion
 #   3. anthropics/claude-plugins-official — frontend-design / code-review /
@@ -15,13 +17,13 @@
 #   5. jnMetaCode/agency-agents-zh     — engineering-wechat-mini-program-developer agent
 #
 # 用法：
-#   手动执行：bash ~/.claude/scripts/update.sh
-#   cron 每天凌晨4点（日志已由脚本内部按天写入 ~/.claude/update-logs/）：
-#   0 4 * * * bash ~/.claude/scripts/update.sh
+#   手动执行：bash ~/projects/ai-configs/scripts/update.sh
+#   cron（日志按天写入 scripts/update-logs/）：
+#   0 10 * * * bash ~/projects/ai-configs/scripts/update.sh
 #
 # macOS 注意事项：
 #   - PATH 中加入了 Homebrew（/opt/homebrew/bin）和 npm global 路径
-#   - claude --version 在 macOS 上通过 npm global 安装，路径已包含
+#   - claude / codex 均通过 npm global 安装，路径已包含
 #   - cron 在 macOS 上需要授予"完全磁盘访问"权限给 /usr/sbin/cron
 #     路径：系统设置 → 隐私与安全性 → 完全磁盘访问
 # ============================================================
@@ -31,9 +33,10 @@ set -uo pipefail
 # macOS: 加入 Homebrew 路径（Apple Silicon: /opt/homebrew/bin，Intel: /usr/local/bin）
 export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$HOME/claude-sources"
 CLAUDE_DIR="$HOME/.claude"
-LOG_DIR="${CLAUDE_DIR}/update-logs"
+LOG_DIR="${SCRIPT_DIR}/update-logs"
 declare -a ERRORS=()
 SYNC_RESULT=""
 ORIGIN_DIR="$PWD"
@@ -172,7 +175,7 @@ mkdir -p \
     "${CLAUDE_DIR}/commands"
 
 log "========================================================"
-log "开始执行 claude-update.sh v12-mac"
+log "开始执行 update.sh v13-mac"
 log "========================================================"
 
 # ============================================================
@@ -192,6 +195,16 @@ if command -v claude >/dev/null 2>&1; then
     fi
 else
     warn "未找到 claude 命令，跳过更新（请先安装：npm install -g @anthropic-ai/claude-code）"
+fi
+
+# ============================================================
+# 0.5/5 更新 Codex CLI
+# ============================================================
+log "======== 0.5/5 更新 Codex CLI ========"
+if npm update -g @openai/codex 2>/dev/null; then
+    ok "Codex CLI 已更新至最新版"
+else
+    warn "Codex CLI 更新失败，请手动执行：npm update -g @openai/codex"
 fi
 
 # ============================================================
@@ -321,6 +334,7 @@ cd "$ORIGIN_DIR" 2>/dev/null || true
 log "========================================================"
 log "======== 完成 ========"
 log "Claude CLI 版本：$(claude --version 2>/dev/null || echo '未知')"
+log "Codex CLI 版本：$(codex --version 2>/dev/null || echo '未知')"
 log "skills  : $(ls "${CLAUDE_DIR}/skills/"   2>/dev/null | tr '\n' ' ')"
 log "agents  : $(ls "${CLAUDE_DIR}/agents/"   2>/dev/null | tr '\n' ' ')"
 log "commands: $(ls "${CLAUDE_DIR}/commands/" 2>/dev/null | tr '\n' ' ')"

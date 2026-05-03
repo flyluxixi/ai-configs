@@ -1,2 +1,4 @@
 .DS_Store
 PROJECT_STATUS.md
+scripts/update-logs/*
+!scripts/update-logs/.gitkeep
