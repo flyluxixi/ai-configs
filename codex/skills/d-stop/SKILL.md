@@ -71,21 +71,24 @@ description: 会话收尾 skill，更新项目状态文件。适用于 Claude Co
 
 ---
 
-## Step 4：提交状态文件到 Git
+## Step 4：检查 Git 状态并给出提交建议
 
-只提交以下状态文件，不暂存或提交其他工作文件：
+如果当前目录是 git 仓库，执行 `git status --short`，只说明本次收尾相关文件的状态：
 - `PROJECT_STATUS.md`
 - `STEP.md`（如本次有更新）
 - `CLAUDE.md`（如本次有更新）
 
-执行：
-```bash
-git add PROJECT_STATUS.md STEP.md CLAUDE.md
-git commit -m "chore: update project status [日期]"
-git push
+禁止主动执行 `git add`、`git commit` 或 `git push`。
+
+如用户后续明确要求提交，先重新检查 `git status`，确认只包含用户要求提交的文件，再按项目 Git 规范执行。
+
+可给出建议提交信息：
+
+```text
+chore: update project status [日期]
 ```
 
-如果上述文件不在 git 仓库中，或当前目录不是 git 仓库，跳过此步骤并告知用户。
+如果当前目录不是 git 仓库，跳过此步骤并告知用户。
 
 ---
 

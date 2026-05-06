@@ -43,4 +43,6 @@
 
 仓库远程地址：`git@github.com:flyluxixi/ai-configs.git`
 
+代码审查、会话收尾和 `PROJECT_STATUS.md` 更新不构成默认提交授权；除非用户明确要求，否则不主动执行 `git commit` 或 `git push`。
+
 提交前检查 `git status`，确认没有 `.DS_Store`、`PROJECT_STATUS.md` 或无关文件进入暂存区。
