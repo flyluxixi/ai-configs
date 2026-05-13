@@ -29,20 +29,20 @@ ls ~/.claude/plugins/cache/openai-codex/codex/ 2>/dev/null
 ```
 
 - **目录存在** → 已安装，跳至第一步
-- **目录不存在** → 告知用户并等待确认：
+- **目录不存在** → 告知用户需要手动安装，**skill 无法代为执行 `/plugin` 命令**：
 
   ```
-  未检测到 codex-plugin-cc（openai/codex-plugin-cc v1.x）。
-  需要依次执行：
-    1. /plugin marketplace add openai/codex-plugin-cc
-    2. /plugin install codex@openai-codex
-    3. /codex:setup
-  确认安装？（回复"安装"继续，或回复"取消"终止）
+  未检测到 codex-plugin-cc，请在 Claude Code 终端依次输入以下三条命令完成安装：
+
+    /plugin marketplace add openai/codex-plugin-cc
+    /plugin install codex@openai-codex
+    /codex:setup
+
+  完成后回复"已安装"，继续审查流程。
   ```
 
-  用户确认后按顺序安装，安装完成告知用户后进入第一步。
-  用户取消 → 停止，输出"已取消，codex-plugin-cc 未安装。"。
-  安装任意步骤失败 → 停止并输出具体错误，不降级到路径 A（保持用户意图）。
+  等用户回复确认后，重新检测目录是否存在，确认安装成功后进入第一步。
+  用户回复"取消" → 停止，输出"已取消。"。
 
 ---
 
