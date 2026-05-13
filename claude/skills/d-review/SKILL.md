@@ -14,35 +14,7 @@ description: 代码审查 + 修复循环 + Git 提交推送 + 服务器部署 + 
 | `/d-review` | Claude Code 自审（内联分析） |
 | `/d-review --codex` | `/codex:adversarial-review --background`（对抗性审查） |
 
-收到触发指令后，**不要询问确认，直接进入第零步**。
-
----
-
-## 第零步：前置检查（仅 --codex）
-
-仅在 `--codex` 模式下执行本步骤，`/d-review` 直接跳至第一步。
-
-### 检测 codex-plugin-cc 是否已安装
-
-```bash
-find ~/.claude/plugins -name "codex-companion.mjs" 2>/dev/null | head -1
-```
-
-- **有输出（返回脚本路径）** → 已安装，将路径记为 `$COMPANION`，跳至第一步
-- **目录不存在** → 告知用户需要手动安装，**skill 无法代为执行 `/plugin` 命令**：
-
-  ```
-  未检测到 codex-plugin-cc，请在 Claude Code 终端依次输入以下三条命令完成安装：
-
-    /plugin marketplace add openai/codex-plugin-cc
-    /plugin install codex@openai-codex
-    /codex:setup
-
-  完成后回复"已安装"，继续审查流程。
-  ```
-
-  等用户回复确认后，重新检测目录是否存在，确认安装成功后进入第一步。
-  用户回复"取消" → 停止，输出"已取消。"。
+收到触发指令后，**不要询问确认，直接进入第一步**。
 
 ---
 
@@ -85,17 +57,17 @@ find ~/.claude/plugins -name "codex-companion.mjs" 2>/dev/null | head -1
 通过 Bash 后台运行 codex-companion 脚本（**不得使用 Skill 工具调用**，会因 disable-model-invocation 报错）：
 
 ```bash
-# $COMPANION 为第零步检测时记录的路径
-node "$COMPANION" adversarial-review ""
-```
-
-若第零步未记录 `$COMPANION`（直接路径 B 的情况），先执行一次 find 取路径：
-```bash
 COMPANION=$(find ~/.claude/plugins -name "codex-companion.mjs" 2>/dev/null | head -1)
 node "$COMPANION" adversarial-review ""
 ```
 
-以 `run_in_background: true` 方式启动，等待任务完成通知后读取输出文件。
+- `$COMPANION` 有值 → 以 `run_in_background: true` 方式启动，等待任务完成通知后读取输出文件
+- `$COMPANION` 为空 → 停止并提示用户 codex-plugin-cc 未安装，请手动在 Claude Code 终端执行：
+  ```
+  /plugin marketplace add openai/codex-plugin-cc
+  /plugin install codex@openai-codex
+  /codex:setup
+  ```
 
 #### B-2：评估每条反馈（不盲信，先判断）
 
@@ -309,8 +281,6 @@ Commit message 格式遵循全局规范：`feat` / `fix` / `docs` / `refactor` /
 
 ```
 触发
-  ↓
-[0] --codex 模式：检测 codex-plugin-cc → 未安装则告知用户等确认后安装
   ↓
 [1] 确定变更范围
   ↓
