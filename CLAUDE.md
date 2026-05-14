@@ -14,17 +14,18 @@
 - `claude/luxixi/`：Claude / Codex 共用的中立技术栈规则源
 - `codex/luxixi`：指向 `../claude/luxixi` 的 symlink，不维护第二份规则
 - `claude/agents/`、`claude/skills/`、`claude/commands/`：Claude Code 专用资产
+- `claude/pitfall/`：各技术栈踩坑记录数据目录，由 pitfall skill 写入，进版本控制
 - `codex/skills/`：Codex 专用 skills，启用时同步到 `~/.codex/skills/`
 - `scripts/update.sh`：Claude Code 生态更新脚本，只负责更新 Claude CLI 和第三方 Claude agents / skills / commands
 - `docs/`：架构规划和维护说明
 
 ## 维护规则
 
-- 长期维护源头：`claude/CLAUDE.md`、`codex/AGENTS.md`、`claude/luxixi/*.md`、两侧 `skills/*/SKILL.md`
+- 长期维护源头：`claude/CLAUDE.md`、`codex/AGENTS.md`、`claude/luxixi/*.md`、`claude/skills/*/SKILL.md`
 - `claude/CLAUDE.md` 与 `codex/AGENTS.md` 已 symlink，修改后无需额外操作
 - `~/.claude/luxixi` 与 `~/.codex/luxixi` 已 symlink 到 `claude/luxixi`，修改 `claude/luxixi/*.md` 后无需同步
-- 修改 `claude/skills/*/SKILL.md` 后，手动 `cp` 到 `~/.claude/skills/<skill>/`
-- 修改 `codex/skills/*/SKILL.md` 后，手动 `cp` 到 `~/.codex/skills/<skill>/`
+- `claude/skills/*/SKILL.md` 是所有 skill 的唯一源头，不单独修改 `codex/skills/`
+- 修改 `claude/skills/<skill>/SKILL.md` 后：cp 到 `~/.claude/skills/<skill>/`；若 `codex/skills/<skill>/` 存在，适配 Codex 语法同步后 cp 到 `~/.codex/skills/<skill>/`
 - 不要直接修改 `~/.claude/luxixi`、`~/.codex/luxixi` 或 `codex/luxixi`
 - 不要把 `scripts/update.sh` 扩展成 Codex 同步脚本
 - 不要把 Claude Code 或 Codex 专用 frontmatter、agent、skill 格式写进 `claude/luxixi/` 中立规则源
