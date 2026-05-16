@@ -7,8 +7,8 @@
 当前发生了两点变化：
 
 1. 除 Claude Code 外，也需要支持 Codex。
-2. 技术栈从 PHP + Webman 扩展为多技术栈：
-   - 后端：PHP + Webman、Go + Gin
+2. 技术栈为多技术栈：
+   - 后端：Go + Gin
    - 前端：微信小程序、Nuxt 4、Flutter
    - 数据库：PostgreSQL
    - 缓存 / 队列：Redis
@@ -75,7 +75,6 @@ ai-configs/
 │   ├── rules/                # 同步到 ~/.claude/rules/
 │   ├── luxixi/               # Claude / Codex 共用的中立规则源
 │   │   ├── go.md
-│   │   ├── php-webman.md
 │   │   ├── nuxt4.md
 │   │   ├── flutter.md
 │   │   ├── miniprogram.md
@@ -114,22 +113,6 @@ ai-configs/
 `luxixi/` 是 Claude / Codex 共用的中立规则源，不绑定 Claude Code 的 frontmatter 格式。
 
 如需使用 Claude Code 的 `~/.claude/rules/` 自动按路径加载机制，应在 `claude/rules/` 下新增适配文件，通过 `paths` 限定触发范围，再引用 `luxixi/` 中的中立规则。
-
-PHP / Webman 示例：
-
-```md
----
-paths:
-  - "**/*.php"
-  - "composer.json"
-  - "composer.lock"
-  - "config/**/*.php"
-  - "app/**/*.php"
-  - "process/**/*.php"
----
-
-@~/.claude/luxixi/php-webman.md
-```
 
 Go / Gin 示例：
 
@@ -195,25 +178,6 @@ Go + Gin 项目的 `AGENTS.md`：
 - `~/.codex/luxixi/nginx.md`
 ```
 
-PHP + Webman 项目只需替换对应规则（Claude 侧，`@` 自动展开）：
-
-```md
-@~/.claude/luxixi/php-webman.md
-@~/.claude/luxixi/postgresql.md
-@~/.claude/luxixi/redis.md
-@~/.claude/luxixi/nginx.md
-```
-
-PHP + Webman 项目的 `AGENTS.md`（Codex 侧，需显式读取）：
-
-```md
-执行前必须先读取以下规则文件：
-- `~/.codex/luxixi/php-webman.md`
-- `~/.codex/luxixi/postgresql.md`
-- `~/.codex/luxixi/redis.md`
-- `~/.codex/luxixi/nginx.md`
-```
-
 前端项目示例（Claude 侧）：
 
 ```md
@@ -246,7 +210,7 @@ Codex 侧需要将 `@path` 改为显式读取指令：
 现有 `agents/` 和 `skills/` 仍视为 Claude Code 专用形态：
 
 - Claude agent 文件包含 `tools`、`model`、`color` 等 Claude 专用 frontmatter。
-- Claude skill 文件包含 `/d-stop`、`/d-webman-log` 等 Claude Code 使用语义。
+- Claude skill 文件包含 `/d-stop` 等 Claude Code 使用语义。
 
 其中的专家知识和流程可以复用，但文件格式不应直接视为 Codex 通用。
 

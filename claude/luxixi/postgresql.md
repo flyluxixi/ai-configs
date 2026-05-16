@@ -69,6 +69,39 @@
 - 优化前必须确认数据量级、选择性、现有索引和实际查询参数
 - ORM / QueryBuilder 生成的 SQL 必须按真实 SQL 审查
 
+### 常用诊断查询
+
+```sql
+-- 找未建索引的外键（检查完整前缀，支持复合 FK）
+SELECT c.conrelid::regclass AS table_name,
+       c.conname AS fk_name,
+       array_to_string(ARRAY(
+         SELECT a.attname FROM pg_attribute a
+         WHERE a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey)
+         ORDER BY array_position(c.conkey, a.attnum)
+       ), ', ') AS fk_columns
+FROM pg_constraint c
+WHERE c.contype = 'f'
+  AND NOT EXISTS (
+    SELECT 1 FROM pg_index i
+    WHERE i.indrelid = c.conrelid
+      AND i.indpred IS NULL
+      AND (i.indkey::int2[])[1:array_length(c.conkey,1)] = c.conkey
+  );
+
+-- 慢查询（需启用 pg_stat_statements 扩展）
+SELECT query, mean_exec_time, calls
+FROM pg_stat_statements
+WHERE mean_exec_time > 100
+ORDER BY mean_exec_time DESC;
+
+-- 表膨胀检查
+SELECT relname, n_dead_tup, last_vacuum
+FROM pg_stat_user_tables
+WHERE n_dead_tup > 1000
+ORDER BY n_dead_tup DESC;
+```
+
 ## 迁移与数据维护
 
 - schema 迁移必须可审查、可回滚或有明确补救方案

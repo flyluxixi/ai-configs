@@ -9,10 +9,7 @@
 #   1. everything-claude-code          — agents / skills / commands
 #   2. superpowers                     — systematic-debugging / verification-before-completion
 #   3. anthropics/claude-plugins-official — frontend-design / code-review /
-#                                           skill-creator / claude-md-management /
-#                                           agent-sdk-dev / claude-code-setup /
-#                                           mcp-server-dev / php-lsp / plugin-dev /
-#                                           feature-dev
+#                                           skill-creator / claude-md-management
 #   4. nextlevelbuilder/ui-ux-pro-max-skill — ui-ux-pro-max skill
 #   5. jnMetaCode/agency-agents-zh     — engineering-wechat-mini-program-developer agent
 #
@@ -22,8 +19,8 @@
 #   0 10 * * * bash ~/projects/ai-configs/scripts/update.sh
 #
 # macOS 注意事项：
-#   - PATH 中加入了 Homebrew（/opt/homebrew/bin）和 npm global 路径
-#   - claude / codex 均通过 npm global 安装，路径已包含
+#   - PATH 中加入了 Homebrew、~/.local/bin（claude 原生安装路径）和 npm global 路径
+#   - claude 通过 claude install 原生安装（~/.local/bin/claude），codex 通过 npm global 安装
 #   - cron 在 macOS 上需要授予"完全磁盘访问"权限给 /usr/sbin/cron
 #     路径：系统设置 → 隐私与安全性 → 完全磁盘访问
 # ============================================================
@@ -31,7 +28,7 @@
 set -uo pipefail
 
 # macOS: 加入 Homebrew 路径（Apple Silicon: /opt/homebrew/bin，Intel: /usr/local/bin）
-export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.local/bin:$HOME/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$HOME/claude-sources"
@@ -183,18 +180,13 @@ log "========================================================"
 # ============================================================
 log "======== 0/5 更新 Claude CLI ========"
 if command -v claude >/dev/null 2>&1; then
-    if claude update --yes 2>/dev/null; then
+    if claude update 2>/dev/null; then
         ok "Claude CLI 已更新至最新版"
     else
-        # fallback：通过 npm 更新
-        if npm update -g @anthropic-ai/claude-code 2>/dev/null; then
-            ok "Claude CLI 已通过 npm 更新至最新版"
-        else
-            warn "Claude CLI 更新失败，请手动执行：npm update -g @anthropic-ai/claude-code"
-        fi
+        warn "Claude CLI 更新失败，请手动执行：claude update"
     fi
 else
-    warn "未找到 claude 命令，跳过更新（请先安装：npm install -g @anthropic-ai/claude-code）"
+    warn "未找到 claude 命令，跳过更新（请先安装：claude install）"
 fi
 
 # ============================================================
@@ -219,7 +211,7 @@ if [ "$SYNC_RESULT" = "UPDATED" ]; then
         install_agent "$ECC_DIR/agents/${agent}.md"
     done
 
-    for skill in api-design postgres-patterns security-review; do
+    for skill in api-design security-review; do
         install_skill "$skill" "$ECC_DIR/skills/$skill"
     done
 
@@ -255,13 +247,7 @@ if [ "$SYNC_RESULT" = "UPDATED" ]; then
 
     for plugin in \
         frontend-design \
-        skill-creator \
-        agent-sdk-dev \
-        claude-code-setup \
-        mcp-server-dev \
-        php-lsp \
-        plugin-dev \
-        feature-dev
+        skill-creator
     do
         install_skill "$plugin" \
             "$APO_DIR/plugins/$plugin/skills/$plugin" \

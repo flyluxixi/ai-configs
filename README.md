@@ -28,7 +28,6 @@ ai-configs/
 │   ├── rules/                # 同步到 ~/.claude/rules/
 │   ├── luxixi/               # Claude / Codex 共用的中立规则源
 │   │   ├── go.md
-│   │   ├── php-webman.md
 │   │   ├── nuxt4.md
 │   │   ├── flutter.md
 │   │   ├── miniprogram.md
@@ -74,7 +73,6 @@ ai-configs/
 `claude/luxixi/` 是 Claude Code 与 Codex 共用的中立规则源，后续计划维护：
 
 - `go.md`
-- `php-webman.md`
 - `nuxt4.md`
 - `flutter.md`
 - `miniprogram.md`
@@ -119,10 +117,8 @@ ln -sfn ~/projects/ai-configs/claude/luxixi ~/.codex/luxixi
 
 - `claude/agents/php-expert.md`：PHP / Webman 专项 agent
 - `claude/skills/d-stop/SKILL.md`：会话收尾，维护 `PROJECT_STATUS.md`
-- `claude/skills/d-webman-log/SKILL.md`：Webman 日志初始化
 - `claude/skills/d-nginx/SKILL.md`：Nginx 薄 skill，引用 `~/.claude/luxixi/nginx.md`
 - `codex/skills/d-stop/SKILL.md`：Codex 会话收尾
-- `codex/skills/d-webman-log/SKILL.md`：Codex Webman 日志初始化
 - `codex/skills/d-nginx/SKILL.md`：Codex Nginx skill，显式读取 `~/.codex/luxixi/nginx.md`（Codex 不支持 `@` 自动展开）
 
 这些文件里的专家知识可以复用，但不要直接复制后不校正路径、入口文件名和工具行为。
@@ -133,7 +129,6 @@ ln -sfn ~/projects/ai-configs/claude/luxixi ~/.codex/luxixi
 - `AGENTS.md`：本仓库给 Codex 使用的项目级入口
 - `claude/CLAUDE.md`：Claude Code 全局入口源文件
 - `codex/AGENTS.md`：Codex 全局入口源文件
-- `webman-packages-reference.md`：Webman 常用依赖备忘
 - `scripts/update.sh`：Claude Code 生态更新脚本，只服务 Claude Code
 - `docs/ai-assistant-config-architecture.md`：Claude Code / Codex 共用源库的架构规划
 

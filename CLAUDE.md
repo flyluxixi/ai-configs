@@ -38,7 +38,6 @@
 
 - `README.md`：仓库定位、目录规划、维护原则
 - `docs/ai-assistant-config-architecture.md`：Claude Code / Codex 共用配置源架构规划
-- `webman-packages-reference.md`：Webman 常用依赖备忘
 
 ## Git
 
