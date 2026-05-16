@@ -58,7 +58,7 @@ description: 代码审查 + 修复循环 + Git 提交推送 + 服务器部署 + 
 
 ```bash
 COMPANION=$(find ~/.claude/plugins -name "codex-companion.mjs" 2>/dev/null | head -1)
-node "$COMPANION" adversarial-review ""
+node "$COMPANION" adversarial-review "请用简体中文输出所有审查结果，包括 Findings、Recommendation 和 Next steps。"
 ```
 
 - `$COMPANION` 有值 → 以 `run_in_background: true` 方式启动，等待任务完成通知后读取输出文件
