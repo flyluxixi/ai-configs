@@ -75,4 +75,40 @@ grep -i "<标题关键词>" ~/projects/ai-configs/claude/pitfall/<分类>.md 2>/
 
 ## Step 5：写入文件
 
-用户确认后，追加内容到 `~/projects/ai-configs/claude/pitfall/<分类>.md`，条目之间保留一个空行。文件不存在则自动创建。完成后告知用户写入路径和分类。
+用户确认后，追加内容到 `~/projects/ai-configs/claude/pitfall/<分类>.md`，条目之间保留一个空行。文件不存在则自动创建。
+
+---
+
+## Step 6：固化到版本控制
+
+写入成功后，d-pitfall 必须立即把改动 commit + push 到 ai-configs 仓库，避免遗留为未提交状态。这是 skill 的标准闭环，全局 Git 规范对此设有例外（见 `claude/CLAUDE.md` Git 规范章节）。
+
+### 6.1 防护闸：检查工作区清洁度
+
+```bash
+git -C ~/projects/ai-configs status --porcelain
+```
+
+- 输出**只**包含本次写入文件 `claude/pitfall/<分类>.md` 一行 M 或 ?? → 进入 6.2 自动提交
+- 输出含其他文件改动（SKILL.md、CLAUDE.md、其他 pitfall 文件、PROJECT_STATUS.md 等）→ **不自动提交**，输出以下提示后结束：
+  ```
+  ⚠️ ai-configs 工作区还有其他未提交改动，d-pitfall 不自动提交避免误伤。
+  本次写入：~/projects/ai-configs/claude/pitfall/<分类>.md
+  请稍后回到 ai-configs 仓库手动 commit。
+  ```
+
+### 6.2 自动 commit + push
+
+```bash
+git -C ~/projects/ai-configs add claude/pitfall/<分类>.md
+git -C ~/projects/ai-configs commit -m "docs(pitfall): <标题>"
+git -C ~/projects/ai-configs push
+```
+
+- commit 失败（pre-commit hook 拒绝等）→ 输出错误信息，提示用户手动处理；**不** `--amend`、**不** `--no-verify`
+- push 失败（远端有新 commit 等）→ 输出错误信息，提示用户手动 pull/合并；**不**强制 push
+- 全部成功 → 输出：
+  ```
+  ✓ 已写入 ~/projects/ai-configs/claude/pitfall/<分类>.md
+  ✓ 已 commit + push（hash: <abbreviated>）
+  ```

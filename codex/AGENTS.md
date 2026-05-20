@@ -99,6 +99,8 @@
 
 代码审查、CI 修复、会话收尾、状态文件更新都不构成默认提交授权；只有用户明确要求“提交”“commit”“push”或“发 PR”时才执行对应 Git 操作。
 
+**例外**：`d-pitfall` skill 写入 `~/projects/ai-configs/claude/pitfall/<分类>.md` 后，会在 ai-configs 工作区清洁（仅本次 pitfall 文件变动）时自动 commit + push。这是该 skill 的标准行为闭环，不需要每次额外授权；非清洁时降级为提示用户手动处理。
+
 Commit 格式：
 
 ```text
