@@ -27,3 +27,16 @@
 **根因**: 腾讯地图同一字段在不同接口/位置返回类型不一致：① `place/v1/search` `data[].ad_info.adcode` 是 number；② `place/v1/suggestion` `data[].adcode` 是 number；③ `geocoder/v1` 主结果 `result.ad_info.adcode` 是 string；④ `geocoder/v1?get_poi=1` 子项 `result.pois[].ad_info.adcode` 是 number。仅凭某一处对照定义 struct，切换接口时会翻车
 **解决**: 定义自定义类型 `flexAdCode string`，实现 `UnmarshalJSON` 同时兼容 JSON 字符串和 JSON 数字，统一存为 string；涉及第三方 API 整数 ID 类字段建议预防性用此类自定义类型
 **标签**: 腾讯地图, json, unmarshal, adcode, 类型兼容, 第三方API
+
+## 2026-05-20 - 腾讯地图 POI 类接口的入参/限制差异巨大，选错接口配额秒爆或半径被截断
+
+**现象**: 用 `place/v1/search?boundary=nearby(lat,lng,radius)` 做附近搜索，配额 2000/key/日很快用完；提高 radius 到 2000m，腾讯静默截断到 1000m 上限不报错；keyword 字段官方文档标注必填，传空可能直接 status≠0；切到 `geocoder/v1?get_poi=1` 又发现没有 category filter，路标/餐饮等噪音 POI 都返回
+**根因**: 腾讯 POI 类接口看似都做"找附近的 POI"，实际语义和限制差异巨大：
+- `place/v1/search` 是"区域内全量搜索"，配额 2000/日，半径 ≤1000m，keyword 必填
+- `place/v1/suggestion` 是"边输边补全"，配额 30 万/日，无 location 模式（不支持 boundary=nearby）
+- `geocoder/v1?get_poi=1&poi_options=...` 是"逆地址解析顺手返回 POI"，配额 300 万/日，半径 ≤5000m，但无 category filter
+- `location/v1/ip` 是"IP 推 IP 城市"，无坐标输入
+
+各接口的配额、半径、参数、过滤能力完全不一样，混用同一个"附近搜索"概念会踩坑
+**解决**: 选型前确认每个接口的：① 配额（per-key/日 + QPS）；② 必填参数与默认值；③ 半径上限；④ 是否支持 category/business filter；⑤ 返回排序是否符合预期。drop pin 选址用 geocoder（配额/半径优势）；as-you-type 关键词补全用 suggestion（配额优势）；place_search 留作兼容兜底；IP 定位独立用 location 接口。每个接口在 service 层独立 quota counter，不抢额度
+**标签**: 腾讯地图, POI, place_search, suggestion, geocoder, IP定位, 接口选型, 配额, 第三方API
