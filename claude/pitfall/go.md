@@ -29,3 +29,10 @@ Go 惯用的"忽略 err"写法掩盖了这一 runtime 错误。
 **根因**: Gin v1.10+ 默认 `TrustedProxies` 是 `["0.0.0.0/0", "::/0"]`（trust all），`c.ClientIP()` 会从 XFF 链取最左侧 IP；nginx 用 `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for` 默认行为是追加真实 IP，所以用户带过来的伪造 XFF 会保留在链头并被 Gin 当作客户端 IP 返回
 **解决**: 在 `gin.New()` 之后显式调用 `r.SetTrustedProxies([]string{"127.0.0.1"})`（或网关的实际 IP）。这样 Gin 会从右往左在 XFF 链里找第一个非可信代理的 IP，nginx 追加的真实 IP 会被正确识别。配合 nginx 用 `proxy_set_header X-Real-IP $remote_addr` 提供独立头作为兜底
 **标签**: go, gin, ClientIP, X-Forwarded-For, SetTrustedProxies, IP 伪造, 安全
+
+## 2026-05-20 - sort.SliceStable 的 Less 函数内重复 ParseFloat 性能拉胯
+
+**现象**: 给 N 条 POI（每条 lat/lng 是 string）按距离排序时，把 ParseFloat + 平方距离计算写在 `sort.SliceStable(pois, func(i, j int) bool { ... })` 的 Less 函数内部。N=40 时尚能接受，N 上百时排序明显变慢
+**根因**: Go `sort.SliceStable` 的 Less 函数会被调用 O(N log N) 次（最坏 O(N²)），每次比较都执行两遍 ParseFloat（i 和 j 两个元素）。即使每次 ParseFloat 只几百纳秒，N=200 时也是数十万次 ParseFloat 调用，纯属浪费
+**解决**: per-元素预计算一次距离再排序，用 augmented struct 包装：先一轮 O(N) 算出每个元素的距离存到结构体里，sort 比较时只读取已算好的字段。原则：sort 的 Less 函数应只做比较，不做计算/IO/反序列化。涉及字符串解析、浮点运算、map lookup 等都应外提
+**标签**: go, sort, SliceStable, ParseFloat, 性能, 排序
