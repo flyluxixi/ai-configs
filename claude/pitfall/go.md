@@ -22,3 +22,10 @@ Go 惯用的"忽略 err"写法掩盖了这一 runtime 错误。
 **根因**: 处理顺序"转大写 → 剥标点（含 `-`） → 剥楼栋后缀正则"。楼栋后缀正则中的 `[A-Z][0-9]+-[0-9]+(座|栋)` 依赖连字符匹配 `A4-3座` 这种格式，但 `-` 已被前一步剥光，正则永远 miss。调试时单看正则没问题、单看 trim 没问题，要联动看顺序才发现冲突。
 **解决**: 多步字符串处理时，列出每个正则/规则依赖的字符集，确保它们在该步骤运行时还在。本例改为"转大写 → 剥楼栋后缀 → 剥标点"。类似易踩场景：URL 清洗（先剥协议再 split path）、HTML 文本提取（先去标签再去空白）、SQL 标识符规范化、模板渲染前的 escape 顺序。
 **标签**: go, regexp, strings, 处理顺序, normalize, 静默失败
+
+## 2026-05-20 - Gin v1.12 默认信任所有代理，c.ClientIP() 可被用户伪造
+
+**现象**: 调用 `c.ClientIP()` 拿到的不是真实客户端 IP，而是用户在请求里自带的 `X-Forwarded-For` 头第一个值。在 IP 定位、限流、审计等依赖真实 IP 的场景，用户能让后端替任意 IP 做操作
+**根因**: Gin v1.10+ 默认 `TrustedProxies` 是 `["0.0.0.0/0", "::/0"]`（trust all），`c.ClientIP()` 会从 XFF 链取最左侧 IP；nginx 用 `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for` 默认行为是追加真实 IP，所以用户带过来的伪造 XFF 会保留在链头并被 Gin 当作客户端 IP 返回
+**解决**: 在 `gin.New()` 之后显式调用 `r.SetTrustedProxies([]string{"127.0.0.1"})`（或网关的实际 IP）。这样 Gin 会从右往左在 XFF 链里找第一个非可信代理的 IP，nginx 追加的真实 IP 会被正确识别。配合 nginx 用 `proxy_set_header X-Real-IP $remote_addr` 提供独立头作为兜底
+**标签**: go, gin, ClientIP, X-Forwarded-For, SetTrustedProxies, IP 伪造, 安全
