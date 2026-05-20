@@ -54,20 +54,43 @@ description: 代码审查 + 修复循环 + Git 提交推送 + 服务器部署 + 
 
 #### B-1：调用审查
 
-通过 Bash 后台运行 codex-companion 脚本（**不得使用 Skill 工具调用**，会因 disable-model-invocation 报错）：
+`/codex:adversarial-review` slash command 标了 `disable-model-invocation: true`，禁止 SlashCommand 工具自动触发；但 plugin 自身就是用 Bash 调底层 `codex-companion.mjs`（见 plugin `commands/adversarial-review.md`），d-review 沿用这条路径。
+
+**1. 单次 Bash 调用完成"定位 + 启动"，必须设 `run_in_background: true`**：
+
+Bash 工具每次调用都是独立 shell，变量不跨调用传递；同时对抗性审查耗时可达数分钟。这两个约束意味着定位和启动必须在同一个 Bash 命令块里完成，并且 Bash 工具调用参数必须包含 `run_in_background: true`：
 
 ```bash
-COMPANION=$(find ~/.claude/plugins -name "codex-companion.mjs" 2>/dev/null | head -1)
-node "$COMPANION" adversarial-review "请用简体中文输出所有审查结果，包括 Findings、Recommendation 和 Next steps。"
+COMPANION=$(ls -d ~/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs 2>/dev/null | sort -V | tail -1)
+if [ -z "$COMPANION" ]; then
+  echo "codex-plugin-cc 未安装" >&2
+  exit 1
+fi
+node "$COMPANION" adversarial-review --background "请用简体中文输出所有审查结果，包括 Findings、Recommendation 和 Next steps。"
 ```
 
-- `$COMPANION` 有值 → 以 `run_in_background: true` 方式启动，等待任务完成通知后读取输出文件
-- `$COMPANION` 为空 → 停止并提示用户 codex-plugin-cc 未安装，请手动在 Claude Code 终端执行：
+- 启动后 Bash 工具会返回**后台任务 ID** 和 **output 文件路径**，**两个都要记下**，后续取结果用
+- 启动若失败并输出"codex-plugin-cc 未安装"，停止并告知用户在 Claude Code 终端手动执行：
   ```
   /plugin marketplace add openai/codex-plugin-cc
   /plugin install codex@openai-codex
   /codex:setup
   ```
+- 不要 `find ~/.claude/plugins`，会同时扫到 `marketplaces/` 下的源码副本，路径不稳定
+- `--background` 标志被透传给 mjs（当前实现里 mjs 不消费这个标志，真正后台化靠 Claude Code 的 `run_in_background: true`），保留它是为了与 plugin 自身的 command 调用形态对齐
+
+**2. 取回审查结果（主路径 + 兜底）**：
+
+启动后等 `task-notification` 到达，再按以下顺序取结果：
+
+- **主路径**：Read 工具读后台任务的 output 文件路径，里面是 mjs 渲染到 stdout 的完整结果（含 `# Codex Adversarial Review`、`Verdict`、`Findings`、`Recommendation`、`Next steps`）
+- **兜底**（output 文件被截断 / 已过期 / 当前 turn 没接到通知）：通过同一个 `COMPANION` 调持久化层取结果：
+  ```bash
+  COMPANION=$(ls -d ~/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs 2>/dev/null | sort -V | tail -1)
+  node "$COMPANION" status --all        # 找到 kind=adversarial-review 的最近 job
+  node "$COMPANION" result <job-id>     # 取持久化的最终结果
+  ```
+  这两个命令是 plugin 写给 `/codex:status` / `/codex:result` 用的同一套底层接口，可重入
 
 #### B-2：评估每条反馈（不盲信，先判断）
 
@@ -312,7 +335,7 @@ Commit message 格式遵循全局规范：`feat` / `fix` / `docs` / `refactor` /
 - **Codex 结果不盲信**：必须逐条评估，仅修复「必须修复」和「建议修复」；设计争议告知用户，误报跳过并说明原因
 - **安全类从严**：有合理怀疑即归为必须修复，不要求 100% 确定
 - **插件安装须确认**：`--codex` 模式下检测到未安装时，告知插件身份和安装步骤，等用户明确回复"安装"后才执行
-- **Codex 调用方式**：必须通过 Bash 执行 codex-companion.mjs，禁止使用 Skill 工具（会触发 disable-model-invocation 错误）
+- **Codex 调用方式**：必须通过 Bash 工具直接 `node` 运行 codex-companion.mjs，并以 `run_in_background: true` 启动；`/codex:adversarial-review` slash command 设了 `disable-model-invocation: true`，禁止 SlashCommand 工具自动触发——但 Bash 调底层脚本是 plugin 自身的标准入口，不受此限制
 - **确认门不可跳过**：审查通过后必须等用户明确回复"继续"才执行 git 和部署，不得静默推进
 - **健康检查不持有数据库密码**：DB 连通性通过 `pg_isready` / `mysqladmin ping` 在服务器端探测（无需密码），不读取 `.env` 中的凭据
 - **`.env` 只 grep `DEPLOY_*`**：禁止读取整个 `.env` 文件，DB 密码等其他内容不进入 assistant 上下文
