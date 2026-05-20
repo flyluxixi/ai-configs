@@ -99,43 +99,74 @@ grep -i "<标题关键词>" docs/design/<模块>.md 2>/dev/null
 
 ---
 
+## Step 4.5：写入前预检查
+
+业务项目工作区通常不清洁（用户正在改代码），但写入和 add 之前必须验证以下三件事，否则会污染用户暂存区或把已有/已删除内容卷入本次决策 commit：
+
+```bash
+# 检查 1：当前 staged 区必须为空（防止 git add 后和别的 staged 文件一起被 commit）
+git diff --cached --quiet
+
+# 检查 2：按目标文件的 tracked 状态分支判断
+if git ls-files --error-unmatch docs/design/<模块>.md >/dev/null 2>&1; then
+  # tracked → 无论文件当前是否存在，都必须没有 unstaged 改动
+  # （覆盖三种异常：tracked 修改、tracked unstaged 删除、tracked + worktree 丢失）
+  git diff --quiet -- docs/design/<模块>.md
+else
+  # untracked → 不能是已存在的草稿
+  test ! -f docs/design/<模块>.md
+fi
+```
+
+> **不要用 `test -f` 做前置**：`test -f` 在文件不存在时会短路跳过后续检查；当文件是 tracked 但被 unstaged 删除（worktree 里看不到、git 视角是 `D` 状态）时，`test -f` 为假，diff 检查被跳过，Step 5 会按"新建"创建并 add，把"删除 + 重建"作为一个变更卷入 commit。必须先用 `git ls-files` 定 tracked 状态，再走 diff 检查。
+
+- 全部通过 → 进入 Step 5 写入
+- 检查 1 失败（暂存区非空）→ **不写入，也不 add**，停止并输出：
+  ```
+  ⚠️ 当前 staged 区已有改动：
+  <git diff --cached --name-only 输出>
+  d-decision 不在脏暂存区操作，避免和其他 staged 文件一起被提交。
+  请先 git commit 已 staged 的改动，或 git reset 取消暂存，再重试。
+  ```
+- 检查 2 失败（tracked 文件有 unstaged 改动 / 删除 / worktree 丢失）→ **不写入，也不 add**，停止并输出：
+  ```
+  ⚠️ docs/design/<模块>.md 是已跟踪文件，但存在未提交状态（修改 / 删除 / worktree 丢失）。
+  d-decision 不会把它和本次操作一起提交。
+  请先处理该文件状态（git commit / git stash / git restore / git checkout --）后重试。
+  ```
+- 检查 2 失败（untracked 已存在文件）→ **不写入，也不 add**，停止并输出：
+  ```
+  ⚠️ docs/design/<模块>.md 已存在但未被 git 跟踪（untracked）。
+  d-decision 不会自动把 untracked 文件的现有内容卷入本次 commit。
+  请先决定该文件的归属：
+  - 想保留现有内容 → 手动 git add + commit 这份文件后再重试
+  - 不想保留 → 删除该文件后再触发 d-decision（Step 2 会按"新建文件"流程询问你）
+  ```
+
+写入和 add **都在 Step 4.5 之后才发生**——预检查失败时绝对不能 `git add` 任何文件，否则会留下污染。
+
+---
+
 ## Step 5：写入文件
 
-用户确认后，追加内容到项目根目录下的 `docs/design/<模块>.md`，条目之间保留一个空行。
+Step 4.5 通过后，追加内容到项目根目录下的 `docs/design/<模块>.md`，条目之间保留一个空行。
 
-- 文件不存在 → 自动创建（含父目录 `docs/design/`）
 - 文件已存在 → 在末尾追加，保留原有内容
+- 文件不存在 → **仅当 Step 2 已获得用户明确同意新建时**才创建（含父目录 `docs/design/`）；未获同意时 Step 2 应已停止，不会进入 Step 5
 
 ---
 
 ## Step 6：固化到版本控制
 
-写入成功后，d-decision 立即把改动 commit + push 到当前项目仓库。**只 add 本次写入的决策文件**，工作区其他改动不卷入；这是 skill 的标准闭环，全局 Git 规范对此设有例外（见 `claude/CLAUDE.md` Git 规范章节）。
-
-### 6.1 单文件 add（不触碰其他改动）
+Step 4.5 已确保 staged 区为空、目标文件无旧 unstaged 改动；Step 5 写入后只需直接 add + commit + push 即可（标准闭环，全局 Git 规范对此设有例外，见 `claude/CLAUDE.md` Git 规范章节）。
 
 ```bash
 git add docs/design/<模块>.md
-```
-
-不得使用 `git add -A` 或 `git add .`，不得顺手提交工作区其他正在进行的改动。
-
-### 6.2 防御性检查
-
-```bash
-git diff --cached --name-only
-```
-
-- 暂存区**只**包含 `docs/design/<模块>.md` → 进入 6.3
-- 暂存区包含其他文件（不应发生，作为防御）→ 停止，报告异常并提示用户手动处理
-
-### 6.3 commit + push
-
-```bash
 git commit -m "docs(design): <标题>"
 git push
 ```
 
+- 不得使用 `git add -A` 或 `git add .`
 - commit 失败（pre-commit hook 拒绝等）→ 输出错误信息，提示用户手动处理；**不** `--amend`、**不** `--no-verify`
 - push 失败（远端有新 commit、无远端 / 无权限等）→ 输出错误信息，提示用户手动 pull/合并；**不**强制 push
 - 全部成功 → 输出：

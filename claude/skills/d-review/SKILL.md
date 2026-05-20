@@ -324,7 +324,7 @@ Commit message 格式遵循全局规范：`feat` / `fix` / `docs` / `refactor` /
   ↓
 [2A] Claude 自审          [2B] Codex 对抗性审查
      ↓ fix loop                ↓ 评估每条反馈（必须/建议/争议/误报）
-                               ↓ 仅修复「必须」和「建议」→ 复审循环
+                               ↓ 仅修复「必须」和「建议」（一次性，不复审）
   审查通过
   ↓
 [3] 发现并运行项目测试 → 失败则停止
@@ -351,7 +351,7 @@ Commit message 格式遵循全局规范：`feat` / `fix` / `docs` / `refactor` /
 - **文档一致性维度按需启用**：仅在触发信号（新增/删除/重命名、改动 CLAUDE.md/README.md/AGENTS.md 提到的路径、改动 docs/、改动对外接口）出现时执行；都不存在则跳过，避免每次审查都拉满；该维度的"建议修复"类只列出告知用户，不阻塞流程
 - **Codex 结果不盲信**：必须逐条评估，仅修复「必须修复」和「建议修复」；设计争议告知用户，误报跳过并说明原因
 - **安全类从严**：有合理怀疑即归为必须修复，不要求 100% 确定
-- **插件安装须确认**：`--codex` 模式下检测到未安装时，告知插件身份和安装步骤，等用户明确回复"安装"后才执行
+- **插件未安装不自动安装**：`--codex` 模式下检测到 codex-plugin-cc 未安装时，d-review 自身不执行任何安装命令，**仅告知用户在 Claude Code 终端手动执行** `/plugin marketplace add openai/codex-plugin-cc`、`/plugin install codex@openai-codex`、`/codex:setup`，然后让用户安装完后重新触发 `/d-review --codex`
 - **Codex 调用方式**：必须通过 Bash 工具直接 `node` 运行 codex-companion.mjs，并以 `run_in_background: true` 启动；`/codex:adversarial-review` slash command 设了 `disable-model-invocation: true`，禁止 SlashCommand 工具自动触发——但 Bash 调底层脚本是 plugin 自身的标准入口，不受此限制
 - **确认门不可跳过**：审查通过后必须等用户明确回复"继续"才执行 git 和部署，不得静默推进
 - **健康检查不持有数据库密码**：DB 连通性通过 `pg_isready` / `mysqladmin ping` 在服务器端探测（无需密码），不读取 `.env` 中的凭据

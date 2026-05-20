@@ -73,31 +73,36 @@ grep -i "<标题关键词>" ~/projects/ai-configs/claude/pitfall/<分类>.md 2>/
 
 ---
 
-## Step 5：写入文件
+## Step 4.5：写入前预检查
 
-用户确认后，追加内容到 `~/projects/ai-configs/claude/pitfall/<分类>.md`，条目之间保留一个空行。文件不存在则自动创建。
-
----
-
-## Step 6：固化到版本控制
-
-写入成功后，d-pitfall 必须立即把改动 commit + push 到 ai-configs 仓库，避免遗留为未提交状态。这是 skill 的标准闭环，全局 Git 规范对此设有例外（见 `codex/AGENTS.md` Git 规范章节）。
-
-### 6.1 防护闸：检查工作区清洁度
+为避免把用户已有的未提交改动（包括目标文件自身的旧改动）混入本次 commit，**写入前必须确保 ai-configs 整个工作区清洁**：
 
 ```bash
 git -C ~/projects/ai-configs status --porcelain
 ```
 
-- 输出**只**包含本次写入文件 `claude/pitfall/<分类>.md` 一行 M 或 ?? → 进入 6.2 自动提交
-- 输出含其他文件改动（SKILL.md、AGENTS.md、其他 pitfall 文件、PROJECT_STATUS.md 等）→ **不自动提交**，输出以下提示后结束：
+- 输出为空（工作区清洁）→ 进入 Step 5 写入
+- 输出非空 → **不写入**，停止并输出：
   ```
-  ⚠️ ai-configs 工作区还有其他未提交改动，d-pitfall 不自动提交避免误伤。
-  本次写入：~/projects/ai-configs/claude/pitfall/<分类>.md
-  请稍后回到 ai-configs 仓库手动 commit。
+  ⚠️ ai-configs 工作区有未提交改动：
+  <git status --porcelain 原样输出>
+  d-pitfall 不在脏工作区写入，避免污染本次 commit。
+  请先回到 ai-configs 仓库处理这些改动后重试。
   ```
 
-### 6.2 自动 commit + push
+仅看"目标文件是否只显示一行 M"判断不够安全——目标文件本来可能就是 M（用户之前手动改过没提交），追加后还是一行 M，会被误判为清洁并把旧改动一起提交。
+
+---
+
+## Step 5：写入文件
+
+用户确认且 Step 4.5 通过后，追加内容到 `~/projects/ai-configs/claude/pitfall/<分类>.md`，条目之间保留一个空行。文件不存在则自动创建。
+
+---
+
+## Step 6：固化到版本控制
+
+Step 4.5 已确保写入前工作区清洁，所以 Step 5 之后工作区只会多出本次写入文件的一行变更，可以直接 commit + push（标准闭环，全局 Git 规范对此设有例外，见 `codex/AGENTS.md` Git 规范章节）。
 
 ```bash
 git -C ~/projects/ai-configs add claude/pitfall/<分类>.md
