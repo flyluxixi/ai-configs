@@ -34,20 +34,24 @@ description: 记录技术踩坑或决策踩坑到个人知识库。用户说"记
 
 如果无法确定，询问用户。
 
+**分类文件名安全约束**：只接受上方枚举列表中的固定文件名（`go.md` / `postgresql.md` / `php.md` / `nginx.md` / `decisions.md` / `general.md`）。用户若提议其他名称 → 拒绝，告知用户当前枚举不可自由扩展；如确实需要新分类，先修改 d-pitfall SKILL.md 添加枚举项，而不是在本次会话中临时新建。
+
 ---
 
 ## Step 3：查重
 
-推断出分类文件路径后，检查该文件是否存在重复或相似条目：
+**不通过 shell grep 查重**：标题关键词来自对话内容，若拼到 `grep "<关键词>"` 命令中，shell 会先解析双引号内的 `` `..` ``、`$(..)`、`$VAR`，可能触发命令执行；同时 grep 正则元字符也会引发意外匹配。
 
-```bash
-grep -i "<标题关键词>" ~/projects/ai-configs/claude/pitfall/<分类>.md 2>/dev/null
-```
+改用执行环境的文件读取工具（Claude Code 的 `Read` 工具、Codex 的 `view` 或等价文件读取工具）读取 `~/projects/ai-configs/claude/pitfall/<分类>.md` 全文，**在模型记忆里判重**——文件内容只通过工具参数传给 OS 读系统调用，跳过 shell 解析。
 
-用标题中的 2-3 个核心关键词搜索，不需要完整匹配。
+判重方式：
+- 文件不存在 → 直接进入 Step 4
+- 文件存在 → 读全文，按"标题语义 + 标签命中 + 现象/根因相似"判断；不要求字面完全匹配
+- 文件过大（> 50KB）罕见，真遇到分块读
 
-- **文件不存在或无命中** → 直接进入 Step 4
-- **有命中** → 展示匹配到的条目，询问用户：
+判断结果处理：
+- 无相似条目 → 进入 Step 4
+- 有相似条目 → 展示匹配条目，询问用户：
   1. **跳过**：已有记录，无需重复
   2. **补充**：在已有条目末尾追加新信息（如新的解决方案或补充说明）
   3. **新条目**：场景不同，作为独立条目写入
@@ -75,22 +79,21 @@ grep -i "<标题关键词>" ~/projects/ai-configs/claude/pitfall/<分类>.md 2>/
 
 ## Step 4.5：写入前预检查
 
-为避免把用户已有的未提交改动（包括目标文件自身的旧改动）混入本次 commit，**写入前必须确保 ai-configs 整个工作区清洁**：
+**写入前必须确保 ai-configs 整个工作区清洁**——这是最初真实事故的根因（用户在项目 X 跑 d-pitfall，写入完未提交残留为 M，下次回 ai-configs 才发现）：
 
 ```bash
 git -C ~/projects/ai-configs status --porcelain
 ```
 
-- 输出为空（工作区清洁）→ 进入 Step 5 写入
-- 输出非空 → **不写入**，停止并输出：
+- 输出为空 → 进入 Step 5
+- 输出非空 → **不写入**，提示：
   ```
   ⚠️ ai-configs 工作区有未提交改动：
   <git status --porcelain 原样输出>
-  d-pitfall 不在脏工作区写入，避免污染本次 commit。
   请先回到 ai-configs 仓库处理这些改动后重试。
   ```
 
-仅看"目标文件是否只显示一行 M"判断不够安全——目标文件本来可能就是 M（用户之前手动改过没提交），追加后还是一行 M，会被误判为清洁并把旧改动一起提交。
+detached HEAD / upstream / .gitignore 等异常不前置拦截，留到 Step 6 commit / push 失败时由 git 自身报错并提示用户手动处理。
 
 ---
 
@@ -102,18 +105,22 @@ git -C ~/projects/ai-configs status --porcelain
 
 ## Step 6：固化到版本控制
 
-Step 4.5 已确保写入前工作区清洁，所以 Step 5 之后工作区只会多出本次写入文件的一行变更，可以直接 commit + push（标准闭环，全局 Git 规范对此设有例外，见 `claude/CLAUDE.md` Git 规范章节）。
+### 6.1 用 `Write` 工具生成 commit message 文件
+
+`<标题>` 来自对话内容，可能含反引号、`$()`、`$VAR` 等 shell 元字符——**绝不**拼进任何 shell 命令字符串。用 Claude Code 的 `Write` 工具（Codex 用 `apply_patch`）写入临时文件：
+
+- 路径：`/tmp/d-pitfall-msg.<unix 时间戳>.txt`
+- 内容：`docs(pitfall): <标题>` 加末尾换行
+
+### 6.2 add + commit + push（**单次 Bash 调用，逐条门禁**）
 
 ```bash
-git -C ~/projects/ai-configs add claude/pitfall/<分类>.md
-git -C ~/projects/ai-configs commit -m "docs(pitfall): <标题>"
+git -C ~/projects/ai-configs add -- "claude/pitfall/<分类>.md" || exit 1
+git -C ~/projects/ai-configs commit -F "/tmp/d-pitfall-msg.<unix 时间戳>.txt" || exit 1
+rm -f "/tmp/d-pitfall-msg.<unix 时间戳>.txt"
 git -C ~/projects/ai-configs push
 ```
 
-- commit 失败（pre-commit hook 拒绝等）→ 输出错误信息，提示用户手动处理；**不** `--amend`、**不** `--no-verify`
-- push 失败（远端有新 commit 等）→ 输出错误信息，提示用户手动 pull/合并；**不**强制 push
-- 全部成功 → 输出：
-  ```
-  ✓ 已写入 ~/projects/ai-configs/claude/pitfall/<分类>.md
-  ✓ 已 commit + push（hash: <abbreviated>）
-  ```
+- `rm` 只在 commit 成功后执行——commit 失败时临时文件保留，用户可手动 `git commit -F <file>` 重跑
+- **不绕过 git 默认保护**：不 `add -A` / `add .` / `add -f`，不 `--amend` / `--no-verify`，不 `push --force` / `--force-with-lease` / `-u`
+- 全部成功 → 输出 `✓ 已写入 + commit + push（hash: <abbreviated>）`

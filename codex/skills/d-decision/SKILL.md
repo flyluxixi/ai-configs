@@ -26,15 +26,15 @@ git symbolic-ref --quiet --short HEAD 2>/dev/null
   请先 git checkout <branch> 或 git switch <branch> 切到正常 branch 后重试。
   ```
 
-### 工作目录约定（贯穿所有后续 Step）
+### 工作目录约定
 
-**每个 Bash 工具调用是独立 shell，环境变量不跨调用保留**，所以无法在 Step 0 保存 `ROOT=...` 给后续 Step 用。后续每条命令必须以下面前缀开头，把 cwd 切到项目根：
+后续每条 Bash 命令必须以下面前缀开头：
 
 ```bash
 cd "$(git rev-parse --show-toplevel)" || exit 1
 ```
 
-不得在子目录 cwd 跑相对 `docs/design/<模块>.md` 的命令——`grep`、`git diff -- <path>`、`git add <path>`、文件写入都会按 cwd 解析路径，子目录里没有 `docs/design/` 会找错文件或写错位置。
+每次 Bash 调用是独立 shell，变量不跨调用保留——cwd 必须每次显式切换。
 
 ---
 
@@ -73,24 +73,29 @@ find docs/design -maxdepth 1 -type f -name '*.md' 2>/dev/null
 
 按项目 `AGENTS.md` 的"项目文档规范"：文件名一经确定不得自行新增、重命名或拆分。
 
+**模块文件名安全约束**：
+
+- 文件名必须匹配正则 `^[a-z0-9][a-z0-9-]*\.md$`（首字符小写字母或数字，后跟小写字母 / 数字 / 连字符，`.md` 结尾）
+- 不允许空格、`/`、`..`、`;`、`$`、`(`、`)`、`` ` ``、`'`、`"`、`\`、控制字符等任何 shell / 路径敏感字符
+- 用户提供或已有的文件名若不符合 → **停止 skill**，提示用户重命名后重试，**不擅自规整文件名**
+- 后续所有 shell 命令引用文件路径时统一形式：`-- "docs/design/<模块>.md"`（用 `--` 分隔选项与位置参数，用双引号保留路径完整性——前提是文件名已通过正则校验，不含 shell 元字符）
+
 ---
 
 ## Step 3：查重
 
-```bash
-cd "$(git rev-parse --show-toplevel)" || exit 1
-grep -F -i -- "<关键词>" docs/design/<模块>.md 2>/dev/null
-```
+**不通过 shell grep 查重**：用户决策标题来自对话上下文，若直接拼到 `grep "<关键词>"` 命令中，shell 会先于 grep 解析双引号内的 `` `...` ``、`$(...)`、`$VAR`，可能触发命令执行或变量展开。
 
-用标题中的 2-3 个核心关键词搜索，不需要完整匹配。
+改用执行环境的文件读取工具（Claude Code 的 Read 工具、Codex 的 view/读取等价工具），把 `docs/design/<模块>.md` 全文直接读出，**在模型记忆里判重**——文件内容只通过工具参数传给 OS 读系统调用，不经过 shell 解析。
 
-**命令注意**：
-- 用 `grep -F`（fixed string）避免标题里 `*`、`$`、`[`、`.` 等正则元字符触发意外匹配
-- 用 `--` 防止关键词以 `-` 开头被当作选项
-- 关键词在传入前必须先**去掉换行符和控制字符**（用标题剥出来的关键词若包含 `\n` 会让 grep 报错或行为异常）
+判重方式：
+- 文件不存在 → 直接进入 Step 4
+- 文件存在 → 读全文，模型按"标题语义 + 标签命中 + 决策对象相同"三个维度判断是否有重复/相似条目；不要求字面完全匹配
+- 文件特别大（> 50KB / > 1000 行）的情况实际罕见；真遇到时分块读，仍不用 grep
 
-- **文件不存在或无命中** → 直接进入 Step 4
-- **有命中** → 展示匹配条目，询问用户：
+判断结果处理：
+- 无相似条目 → 进入 Step 4
+- 有相似条目 → 展示匹配条目，询问用户：
   1. **跳过**：已有决策，无需重复
   2. **更新（推荐）**：原决策已变化，把原条目标记为「已废弃 YYYY-MM-DD，理由：<新决策原因>」并追加新决策（保留历史可追溯，不删除原内容）
   3. **新条目**：场景不同，作为独立决策写入
@@ -130,31 +135,38 @@ grep -F -i -- "<关键词>" docs/design/<模块>.md 2>/dev/null
 
 ## Step 4.5：写入前预检查
 
-业务项目工作区通常不清洁（用户正在改代码），但写入和 add 之前必须验证以下四件事，否则会污染用户暂存区、把已有/已删除内容卷入本次决策 commit、或被 .gitignore 拒绝：
+业务项目工作区通常不清洁（用户正在改代码），但写入和 add 之前必须验证以下五件事，否则会污染用户暂存区、把已有/已删除内容卷入本次决策 commit、被 .gitignore 拒绝、或在写完之后才发现 push 不出去：
 
 ```bash
 cd "$(git rev-parse --show-toplevel)" || exit 1
 
+# 检查 -1：当前 branch 必须有 upstream（写入前就要确定能 push，否则会留下"已写未提交"半完成状态）
+git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
+
 # 检查 0：目标文件路径不能被 .gitignore 屏蔽（d-decision 永不用 git add -f 强加）
-! git check-ignore -q -- docs/design/<模块>.md
+! git check-ignore -q -- "docs/design/<模块>.md"
 
 # 检查 1：当前 staged 区必须为空（防止 git add 后和别的 staged 文件一起被 commit）
 git diff --cached --quiet
 
 # 检查 2：按目标文件的 tracked 状态分支判断
-if git ls-files --error-unmatch docs/design/<模块>.md >/dev/null 2>&1; then
+if git ls-files --error-unmatch -- "docs/design/<模块>.md" >/dev/null 2>&1; then
   # tracked → 无论文件当前是否存在，都必须没有 unstaged 改动
   # （覆盖三种异常：tracked 修改、tracked unstaged 删除、tracked + worktree 丢失）
-  git diff --quiet -- docs/design/<模块>.md
+  git diff --quiet -- "docs/design/<模块>.md"
 else
   # untracked → 不能是已存在的草稿
-  test ! -f docs/design/<模块>.md
+  test ! -f "docs/design/<模块>.md"
 fi
 ```
 
-> **不要用 `test -f` 做前置**：`test -f` 在文件不存在时会短路跳过后续检查；当文件是 tracked 但被 unstaged 删除（worktree 里看不到、git 视角是 `D` 状态）时，`test -f` 为假，diff 检查被跳过，Step 5 会按"新建"创建并 add，把"删除 + 重建"作为一个变更卷入 commit。必须先用 `git ls-files` 定 tracked 状态，再走 diff 检查。
-
 - 全部通过 → 进入 Step 5 写入
+- 检查 -1 失败（无 upstream）→ **不写入，也不 add**，停止并输出：
+  ```
+  ⚠️ 当前 branch <branch> 没有 upstream 配置，git push 会失败。
+  d-decision 不擅自指定远端，也不自动 git push -u 设置 upstream。
+  请先手动跑一次 git push -u origin <branch> 建立 upstream，然后重新触发 /d-decision。
+  ```
 - 检查 0 失败（路径被 .gitignore 屏蔽）→ **不写入，也不 add**，停止并输出：
   ```
   ⚠️ docs/design/<模块>.md 被 .gitignore 屏蔽，无法通过 git 正常跟踪。
@@ -198,41 +210,25 @@ Step 4.5 通过后，追加内容到项目根目录下的 `docs/design/<模块>.
 
 ## Step 6：固化到版本控制
 
-Step 4.5 已确保路径未被 ignore、staged 区为空、目标文件无旧 unstaged 改动；Step 5 写入后再走 upstream 检查 → add → commit → push（标准闭环，全局 Git 规范对此设有例外，见 `codex/AGENTS.md` Git 规范章节）。
+Step 4.5 已确保 upstream 存在、路径未被 ignore、staged 区为空、目标文件无旧 unstaged 改动；Step 5 已写入；本步骤完成 add + commit + push（标准闭环，全局 Git 规范对此设有例外，见 `codex/AGENTS.md` Git 规范章节）。
 
-### 6.1 检查当前 branch 是否有 upstream
+### 6.1 用 `Write` 工具生成 commit message 文件
 
-```bash
-cd "$(git rev-parse --show-toplevel)" || exit 1
-git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
-```
+`<标题>` 来自对话内容，可能含反引号、`$()`、`$VAR` 等 shell 元字符——**绝不**拼进任何 shell 命令字符串。用 Codex 的 `apply_patch` 工具写入临时文件：
 
-- 命令成功（输出 `origin/<branch>` 等）→ 进入 6.2
-- 命令失败（无 upstream）→ **不 add、不 commit**，停止并输出：
-  ```
-  ⚠️ 当前 branch <branch> 没有 upstream 配置，git push 会失败。
-  d-decision 不擅自指定远端，也不自动 git push -u 设置 upstream。
-  请先手动跑一次 git push -u origin <branch> 建立 upstream，然后重新触发 /d-decision。
-  ```
+- 路径：`/tmp/d-decision-msg.<unix 时间戳>.txt`
+- 内容：`docs(design): <标题>` 加末尾换行
 
-### 6.2 add + commit + push
+### 6.2 add + commit + push（**单次 Bash 调用，逐条门禁**）
 
 ```bash
 cd "$(git rev-parse --show-toplevel)" || exit 1
-git add docs/design/<模块>.md
-printf 'docs(design): %s\n' "<标题>" | git commit -F -
+git add -- "docs/design/<模块>.md" || exit 1
+git commit -F "/tmp/d-decision-msg.<unix 时间戳>.txt" || exit 1
+rm -f "/tmp/d-decision-msg.<unix 时间戳>.txt"
 git push
 ```
 
-**关键安全要求**：
-
-- **commit message 不得拼到 `-m` 参数**：用 `printf '%s\n' "..." | git commit -F -` 把 message 通过 stdin 传给 git，避免标题里的 shell 元字符（`"`、`` ` ``、`$`、`\`、`;`、`|`、`&`、`<`、`>`、`(`、`)`）破坏命令、被 shell 解释或触发命令执行。`printf '%s\n' "..."` 中 `%s` 不展开转义序列，比 `printf "..."` 安全
-- **不得使用 `git add -A`、`git add .`、`git add -f`**：`-A`/`-.` 会卷入工作区其他改动；`-f` 会绕过 .gitignore（被 Step 4.5 检查 0 已拦下；这里再次明确兜底禁止）
-- commit 失败（pre-commit hook 拒绝等）→ 输出错误信息，提示用户手动处理；**不** `--amend`、**不** `--no-verify`
-- push 失败（远端有新 commit、无权限等）→ 输出错误信息，提示用户手动 pull/合并；**不**强制 push、**不** `-u` 自动设上游
-- 全部成功 → 输出：
-  ```
-  ✓ 已写入 docs/design/<模块>.md
-  ✓ 已 commit + push（hash: <abbreviated>）
-  工作区其他未提交改动保持不变。
-  ```
+- `rm` 只在 commit 成功后执行——commit 失败时临时文件保留，用户可 `git commit -F <file>` 手动重跑
+- **不绕过 git 默认保护**：不 `add -A` / `add .` / `add -f`，不 `--amend` / `--no-verify`，不 `push --force` / `--force-with-lease` / `-u`
+- 全部成功 → 输出 `✓ 已 commit + push（hash: <abbreviated>）；工作区其他未提交改动保持不变`
