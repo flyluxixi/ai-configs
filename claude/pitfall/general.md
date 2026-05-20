@@ -20,3 +20,10 @@
 **根因**: `radiusDeg = radius / 111320` 同时用于 latitude 和 longitude 的 BETWEEN 粗筛。纬度 1° 恒定约 111.32 km；但经度 1° 实际距离是 `111320 * cos(lat)` m，纬度 36.6° 处约 89.3 km，比赤道短 ~20%。同样的 deg 差，东西方向粗筛半径只有 240m。
 **解决**: 拆出 `latDelta = radius / 111320`、`lngDelta = radius / (111320 * cos(lat_radians))` 分别传 SQL；极端高纬保护：`cos(lat)` 接近 0 时兜底（如 `< 0.01 时设为 0.01`）避免除零。后续在 SQL 内仍用平面近似公式做精确距离计算和过滤。
 **标签**: geo, 经纬度, bounding box, cos, 平面近似距离, 漏候选
+
+## 2026-05-20 - 腾讯地图 adcode 字段类型在不同接口位置不一致
+
+**现象**: 用 string 定义腾讯 `geocoder/v1?get_poi=1` 响应中 `result.pois[].ad_info.adcode` 字段时，`json.Unmarshal` 直接报错 `cannot unmarshal number into Go string`，整个附近搜索远程结果丢失
+**根因**: 腾讯地图同一字段在不同接口/位置返回类型不一致：① `place/v1/search` `data[].ad_info.adcode` 是 number；② `place/v1/suggestion` `data[].adcode` 是 number；③ `geocoder/v1` 主结果 `result.ad_info.adcode` 是 string；④ `geocoder/v1?get_poi=1` 子项 `result.pois[].ad_info.adcode` 是 number。仅凭某一处对照定义 struct，切换接口时会翻车
+**解决**: 定义自定义类型 `flexAdCode string`，实现 `UnmarshalJSON` 同时兼容 JSON 字符串和 JSON 数字，统一存为 string；涉及第三方 API 整数 ID 类字段建议预防性用此类自定义类型
+**标签**: 腾讯地图, json, unmarshal, adcode, 类型兼容, 第三方API
