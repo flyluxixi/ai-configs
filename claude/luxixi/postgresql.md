@@ -34,6 +34,21 @@
 - 禁止大偏移分页不评估 keyset pagination
 - 禁止软删除逻辑不一致或长期不清理孤儿记录
 - 禁止使用数据库 ENUM 类型；所有枚举类字段一律使用 SMALLINT，并添加 CHECK 约束限制取值范围
+- 禁止字段名重复所在表名；外键字段除外（如 `users` 表用 `name` 而非 `user_name`、`orders` 表用 `status` 而非 `order_status`）
+- 禁止字段名长度超过 30 字符；接近上限（> 25 字符）必须先穷举优化手段：① 字段名是否重复了表名 ② 是否能用允许的缩写 ③ 是否可拆分为多个字段 ④ 字段是否放错了表。穷举后仍超过 30 字符的，才允许在迁移说明中写明业务必要性
+- 禁止布尔字段名包含超过 2 段业务词；剔除 `is_` / `has_` 前缀后按下划线分段计数（反例：`is_deal_cooperation_committed` 剔除前缀后为 `deal / cooperation / committed` 共 3 段）
+- 禁止用单一 `xxx_at TIMESTAMPTZ` 字段表达可变 / 可撤销 / 多阶段状态；订单的 `paid` / `shipped` / `cancelled` / `refunded`、审核的 `approved` / `rejected`、任何会回退或有部分完成态的流程，必须用 `SMALLINT + CHECK 约束` 状态机字段表达当前状态，并按需配套 `xxx_at TIMESTAMPTZ` 审计时间字段。状态字段命名：表只有单一主生命周期时用 `status`；表内存在多个独立状态域（如订单的支付 / 履约 / 退款 / 审核）时必须用业务域限定名（如 `payment_status` / `shipment_status` / `refund_status` / `review_status`），这类业务域限定名不受"字段名重复所在表名"约束。只有业务规则明确禁止反向操作的事件（如事务 `committed`、法律意义上 `signed`）才允许用 `xxx_at TIMESTAMPTZ NULL` 表达"是否+何时"；`published` / `archived` / `deleted` 默认视为可撤销（可下架、可恢复、软删除可恢复），除非迁移说明写明不可撤销依据，否则必须用状态字段表达
+- 禁止使用 `is_xxx` / `has_xxx` 布尔字段表达上一条规则约束的状态语义；这类字段必须按上一条规则改用状态机字段或 `xxx_at TIMESTAMPTZ`
+- 禁止自创字段名缩写；允许的缩写白名单按类别列出，业务词（如 `addr` / `amt` / `qty` / `desc` / `info` / `num`）一律写全：
+  - 标识：`id` / `uuid` / `sku`
+  - 网络：`url` / `uri` / `ip` / `cidr` / `mac` / `dns`
+  - 协议：`http` / `https` / `tcp` / `udp` / `ssh` / `ftp` / `smtp`
+  - 数据格式：`json` / `xml` / `csv` / `yaml` / `html`
+  - 认证：`jwt` / `oauth` / `otp` / `mfa` / `sso`
+  - 时间：`utc` / `tz` / `ttl`
+  - 行业：`sql` / `api` / `iso` / `cdn`
+
+  白名单中的缩写仅允许作为完整字段名的一部分，不允许单独作为字段名（例：`mfa_enabled_at` ✅、`jwt_expires_at` ✅、`mfa` 单独作字段名 ❌）；认证凭证 / 密钥 / token 内容不得因缩写白名单的存在而直接落入普通业务字段，应按密钥管理规范单独建模
 
 ## 命名规范
 
@@ -43,6 +58,7 @@
 - 普通索引必须命名为 `idx_{表名}_{字段名}`，多字段以下划线拼接；禁止随意命名索引
 - 唯一索引必须命名为 `uk_{表名}_{字段名}`；禁止随意命名唯一索引（历史遗留的 `uniq_` 前缀视为合规，不主动重命名；新建索引一律用 `uk_`，需重命名时必须提供完整迁移计划）
 - 布尔类型字段必须以 `is_` 或 `has_` 为前缀；禁止使用无语义前缀的布尔字段名
+- 布尔字段仅用于纯属性（如 `is_default`、`is_active`、`is_pinned`、`has_avatar`、`has_children`）；业务规则明确禁止反向操作的事件用 `xxx_at TIMESTAMPTZ NULL`；可撤销 / 多阶段 / 多状态业务用 `SMALLINT + CHECK` 状态机字段——单一主生命周期用 `status`，多个独立状态域用业务域限定名（如 `payment_status` / `shipment_status`），配套 `xxx_at TIMESTAMPTZ` 审计时间字段
 - 时间戳字段必须命名为 `created_at`、`updated_at`，软删除时间戳必须命名为 `deleted_at`
 - 禁止使用 PostgreSQL 保留字作为表名或字段名（如 `user`、`order`、`type`、`value`）
 - 禁止同一数据库内混用不同命名风格
