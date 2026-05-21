@@ -18,7 +18,7 @@
 ## 禁止事项
 
 - 禁止字符串拼接 SQL；所有查询必须参数绑定
-- 禁止在循环内执行查询或写入；改用批量查询、`IN`、JOIN、CTE、窗口函数、批量写入或 upsert
+- 禁止按单条记录循环执行查询或写入；改用批量查询、`IN`、JOIN、CTE、窗口函数、批量写入或 upsert。数据迁移允许按批次循环执行，但必须有批次上限、进度边界和失败后可恢复方案
 - 禁止先查再插实现唯一写入；必须使用唯一约束 + `ON CONFLICT`
 - 禁止在应用层分页、聚合、排序或去重；必须让 SQL 一次返回结果
 - 禁止用多次查询组装数据；必须使用 CTE / 窗口函数一次返回
@@ -27,7 +27,7 @@
 - 禁止迁移脚本不可重复执行；迁移必须幂等或由迁移框架保证只执行一次
 - 禁止无索引地对大表做模糊查询、排序、过滤或 JOIN
 - 禁止为了"可能会用到"盲目加索引；新增索引必须对应明确查询
-- 禁止新增重复索引、低选择性索引
+- 禁止新增重复索引；禁止无查询依据地单独新增低选择性索引，低选择性字段建索引必须说明组合方式、过滤条件或执行计划收益
 - 禁止忽略慢查询、锁等待、执行计划异常或表膨胀问题
 - 禁止使用 `SELECT *`；查询字段必须明确列出
 - 禁止应用层逐条查询可批量读取的数据；必须使用集合查询
@@ -37,8 +37,10 @@
 - 禁止字段名重复所在表名；外键字段除外（如 `users` 表用 `name` 而非 `user_name`、`orders` 表用 `status` 而非 `order_status`）
 - 禁止字段名长度超过 30 字符；接近上限（> 25 字符）必须先穷举优化手段：① 字段名是否重复了表名 ② 是否能用允许的缩写 ③ 是否可拆分为多个字段 ④ 字段是否放错了表。穷举后仍超过 30 字符的，才允许在迁移说明中写明业务必要性
 - 禁止布尔字段名包含超过 2 段业务词；剔除 `is_` / `has_` 前缀后按下划线分段计数（反例：`is_deal_cooperation_committed` 剔除前缀后为 `deal / cooperation / committed` 共 3 段）
-- 禁止用单一 `xxx_at TIMESTAMPTZ` 字段表达可变 / 可撤销 / 多阶段状态；订单的 `paid` / `shipped` / `cancelled` / `refunded`、审核的 `approved` / `rejected`、任何会回退或有部分完成态的流程，必须用 `SMALLINT + CHECK 约束` 状态机字段表达当前状态，并按需配套 `xxx_at TIMESTAMPTZ` 审计时间字段。状态字段命名：表只有单一主生命周期时用 `status`；表内存在多个独立状态域（如订单的支付 / 履约 / 退款 / 审核）时必须用业务域限定名（如 `payment_status` / `shipment_status` / `refund_status` / `review_status`），这类业务域限定名不受"字段名重复所在表名"约束。只有业务规则明确禁止反向操作的事件（如事务 `committed`、法律意义上 `signed`）才允许用 `xxx_at TIMESTAMPTZ NULL` 表达"是否+何时"；`published` / `archived` / `deleted` 默认视为可撤销（可下架、可恢复、软删除可恢复），除非迁移说明写明不可撤销依据，否则必须用状态字段表达
-- 禁止使用 `is_xxx` / `has_xxx` 布尔字段表达上一条规则约束的状态语义；这类字段必须按上一条规则改用状态机字段或 `xxx_at TIMESTAMPTZ`
+- 禁止用单一 `xxx_at TIMESTAMPTZ` 字段表达可变 / 可撤销 / 多阶段状态；订单的 `paid` / `shipped` / `cancelled` / `refunded`、审核的 `approved` / `rejected`、任何会回退或有部分完成态的流程，必须用 `SMALLINT + CHECK 约束` 状态机字段表达当前状态，并按需配套 `xxx_at TIMESTAMPTZ` 审计时间字段
+- 状态字段命名：表只有单一主生命周期时用 `status`；表内存在多个独立状态域（如订单的支付 / 履约 / 退款 / 审核）时必须用业务域限定名（如 `payment_status` / `shipment_status` / `refund_status` / `review_status`），这类业务域限定名不受"字段名重复所在表名"约束
+- 只有业务规则明确禁止反向操作的事件（如事务 `committed`、法律意义上 `signed`）才允许用 `xxx_at TIMESTAMPTZ NULL` 表达"是否+何时"；`published` / `archived` / `deleted` 默认视为可撤销（可下架、可恢复、软删除可恢复），除非迁移说明写明不可撤销依据，否则必须用状态字段表达
+- 禁止使用 `is_xxx` / `has_xxx` 布尔字段表达上述状态规则约束的状态语义；这类字段必须按上述状态规则改用状态机字段或 `xxx_at TIMESTAMPTZ`
 - 禁止自创字段名缩写；允许的缩写白名单按类别列出，业务词（如 `addr` / `amt` / `qty` / `desc` / `info` / `num`）一律写全：
   - 标识：`id` / `uuid` / `sku`
   - 网络：`url` / `uri` / `ip` / `cidr` / `mac` / `dns`
@@ -60,7 +62,7 @@
 - 布尔类型字段必须以 `is_` 或 `has_` 为前缀；禁止使用无语义前缀的布尔字段名
 - 布尔字段仅用于纯属性（如 `is_default`、`is_active`、`is_pinned`、`has_avatar`、`has_children`）；业务规则明确禁止反向操作的事件用 `xxx_at TIMESTAMPTZ NULL`；可撤销 / 多阶段 / 多状态业务用 `SMALLINT + CHECK` 状态机字段——单一主生命周期用 `status`，多个独立状态域用业务域限定名（如 `payment_status` / `shipment_status`），配套 `xxx_at TIMESTAMPTZ` 审计时间字段
 - 时间戳字段必须命名为 `created_at`、`updated_at`，软删除时间戳必须命名为 `deleted_at`
-- 禁止使用 PostgreSQL 保留字作为表名或字段名（如 `user`、`order`、`type`、`value`）
+- 禁止使用 PostgreSQL 关键字或高冲突通用词作为表名或字段名（如 `user`、`order`、`type`、`value`）；是否属于保留字必须以项目锁定 PostgreSQL 版本的官方关键字表为准
 - 禁止同一数据库内混用不同命名风格
 
 ## 事务规范
@@ -76,6 +78,8 @@
 - 查询条件、JOIN key、排序字段、唯一性约束必须评估是否需要索引
 - 新增索引必须说明服务的查询或约束
 - 大表新增索引必须考虑锁表和线上写入影响，必要时使用 `CREATE INDEX CONCURRENTLY`
+- 使用 `CREATE INDEX CONCURRENTLY` 时必须确认迁移框架不会把该语句包在事务块内；若迁移框架默认启用事务，必须关闭该迁移事务或拆分为独立迁移，并检查失败后残留的 `INVALID` 索引
+- 分区表新增索引不得假设可直接在父表上并发创建；必须按项目锁定 PostgreSQL 版本确认支持方式，必要时逐分区并发创建后再附加到父索引
 - JSONB 查询必须评估合适的 GIN / 表达式索引
 
 ## 性能诊断
@@ -111,7 +115,7 @@ FROM pg_stat_statements
 WHERE mean_exec_time > 100
 ORDER BY mean_exec_time DESC;
 
--- 表膨胀检查
+-- 死元组积压检查（不能单独等同于表膨胀）
 SELECT relname, n_dead_tup, last_vacuum
 FROM pg_stat_user_tables
 WHERE n_dead_tup > 1000
