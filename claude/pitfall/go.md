@@ -36,3 +36,10 @@ Go 惯用的"忽略 err"写法掩盖了这一 runtime 错误。
 **根因**: Go `sort.SliceStable` 的 Less 函数会被调用 O(N log N) 次（最坏 O(N²)），每次比较都执行两遍 ParseFloat（i 和 j 两个元素）。即使每次 ParseFloat 只几百纳秒，N=200 时也是数十万次 ParseFloat 调用，纯属浪费
 **解决**: per-元素预计算一次距离再排序，用 augmented struct 包装：先一轮 O(N) 算出每个元素的距离存到结构体里，sort 比较时只读取已算好的字段。原则：sort 的 Less 函数应只做比较，不做计算/IO/反序列化。涉及字符串解析、浮点运算、map lookup 等都应外提
 **标签**: go, sort, SliceStable, ParseFloat, 性能, 排序
+
+## 2026-05-22 - Gin 中间件在 c.Next() 之后调 c.Header() 不生效
+
+**现象**: 注册 RequestTimer 中间件想给所有响应加 X-Runtime header，写法是 `start := time.Now(); c.Next(); c.Header("X-Runtime", duration)`。结果客户端响应里始终没有该 header；直接 curl 绕过 nginx 打 upstream 也看不到。代码编译过、不报错、不 panic、log 无异常，纯静默丢失。
+**根因**: handler 内调用 `c.JSON()` / `resp.OK()` 之类方法时，response header 已经 flush 到 TCP 流，response body 也开始写出。`c.Next()` 返回之后再 `c.Header(...)` 只是把 key/value 写进 `c.Writer.Header()` 的 internal map，**不会追溯改已发出的响应**。Gin 没有 BeforeWrite hook，这是它中间件机制的隐含约束。
+**解决**: 自定义 ResponseWriter wrapper 覆盖 `WriteHeader` / `Write`，在第一次写之前注入 header。中间件入口用 `c.Writer = &runtimeWriter{ResponseWriter: c.Writer, start: time.Now()}` 替换原 writer。注意时长含义是"到第一次 Write 为止"——header 必须在 body 之前发，逻辑上无法测整个 deferred 链路完成的时间，要测全链路只能 log 或用 server-timing 之类分段汇报。诊断关键：先 `curl 127.0.0.1:upstream` 绕过反代验证后端真实响应，不要先怀疑 nginx。
+**标签**: go, gin, middleware, response-header, c.Next, ResponseWriter wrapper, 静默失败
