@@ -1,7 +1,0 @@
-interface:
-  display_name: "D Image 2"
-  short_description: "Generate images with gpt-image-2 and save files"
-  default_prompt: "Use $d-image-2 to generate an image and save it to a specified file path."
-
-policy:
-  allow_implicit_invocation: true
