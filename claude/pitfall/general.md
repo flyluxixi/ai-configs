@@ -40,3 +40,14 @@
 各接口的配额、半径、参数、过滤能力完全不一样，混用同一个"附近搜索"概念会踩坑
 **解决**: 选型前确认每个接口的：① 配额（per-key/日 + QPS）；② 必填参数与默认值；③ 半径上限；④ 是否支持 category/business filter；⑤ 返回排序是否符合预期。drop pin 选址用 geocoder（配额/半径优势）；as-you-type 关键词补全用 suggestion（配额优势）；place_search 留作兼容兜底；IP 定位独立用 location 接口。每个接口在 service 层独立 quota counter，不抢额度
 **标签**: 腾讯地图, POI, place_search, suggestion, geocoder, IP定位, 接口选型, 配额, 第三方API
+
+## 2026-05-26 - git checkout -- 含他人未提交修改的文件会一并覆盖
+
+**现象**: working tree 里某个文件同时存在"自己改了一部分 + 别人未提交一部分"时，跑 `git checkout -- <file>` / `git restore --worktree <file>` / `git reset --hard` 撤销自己加的那段，结果把别人的未提交修改也一并覆盖丢失。
+**根因**: 这三条命令是**全文件粒度**操作——不区分"哪几行是你改的、哪几行是别人改的"，统一把 working tree 还原到 index（或 HEAD）状态。working tree 覆盖通常无法恢复（没 stash 过 + 没 reflog 痕迹）。
+**解决**:
+1. **首选**：用 Edit 工具按行精修，只撤掉自己加的那段
+2. **备选**：`git stash --keep-index` 暂存 working tree 全部改动，操作 index 后 `git stash pop` 恢复
+3. **极端备选**：`git add -p` / `git checkout -p` 选择性操作（交互式，AI 助手在 Bash 里不能跑）
+4. **预防**：操作 git 撤销类命令前，**先 `git diff <file>` 确认 working tree 哪些改动是自己的、哪些是别人的**。文件 diff 里有自己不熟的内容时，绝对不能用 `git checkout --` / `git restore` / `git reset --hard`
+**标签**: git, working-tree, checkout, restore, reset, user-modifications, ai-collaboration
