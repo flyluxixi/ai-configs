@@ -139,6 +139,22 @@ def summarize_api_error(raw_body: bytes) -> str:
     return text[:MAX_ERROR_CHARS]
 
 
+def format_http_error(status_code: int, details: str) -> str:
+    normalized = details.lower()
+    if (
+        "billing hard limit" in normalized
+        or "usage limit" in normalized
+        or "insufficient_quota" in normalized
+    ):
+        return (
+            "OpenAI API usage or billing limit reached. The d-image-2 command is "
+            "working, but this API key's organization cannot create new images "
+            "until the API budget/usage limit is increased or quota becomes "
+            f"available again. Original API error: HTTP {status_code}: {details}"
+        )
+    return f"OpenAI API returned HTTP {status_code}: {details}"
+
+
 def call_images_api(args: argparse.Namespace) -> bytes:
     api_key = os.environ["OPENAI_API_KEY"]
     payload: dict[str, Any] = {
@@ -166,7 +182,7 @@ def call_images_api(args: argparse.Namespace) -> bytes:
             response_body = response.read()
     except urllib.error.HTTPError as exc:
         details = summarize_api_error(exc.read())
-        fail(f"OpenAI API returned HTTP {exc.code}: {details}")
+        fail(format_http_error(exc.code, details))
     except urllib.error.URLError as exc:
         fail(f"OpenAI API request failed: {exc.reason}")
 
