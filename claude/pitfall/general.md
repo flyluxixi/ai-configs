@@ -79,3 +79,10 @@
 **根因**: FastGPT searchTest 接口的 `limit` 字段语义是"返回内容的总 token 上限"，不是"chunk 数量上限"。传 5 = 限制返回 5 个 token，远远装不下一条 chunk（chunkSize=300 字符 ≈ 200 token），FastGPT 行为退化到默认或截断。文档未明确强调这一点
 **解决**: 传 token 数而不是 chunk 数。经验值：希望 rerank 在 10-15 个候选里挑选 → limit=3000；希望更宽召回池 → limit=5000-8000。**单 chunk token ≈ chunkSize 字符 × 0.7**（中文）作为换算参考
 **标签**: fastgpt, searchtest, limit, token, chunk, 单位误导, 第三方API
+
+## 2026-05-30 - Ghostty 1.3.x 渲染 Claude Code CLI 输出停更，需 resize 才刷新
+
+**现象**: 在 Ghostty 终端跑 Claude Code CLI，任务执行中屏幕突然不再有任何输出，像"卡住/暂停"；实际任务已正常执行完，敲键或拖动窗口后输出才一次性显示。多窗格并发跑 claude/codex 时更频繁、越来越严重。
+**根因**: Ghostty 已知开放 bug（Discussion #12062，影响 1.3.1 stable，2026-04 报告，未修复；前身 #11001）。Claude Code 的 TUI 同时使用 DEC 2026 同步输出（\x1b[?2026h...l）+ DECSTBM 滚动区域固定状态栏 + 高频增量光标定位，触发 Ghostty Metal 增量渲染不刷新；多后台 agent 并发会持续恶化。非数据丢失、非进程挂起、非机器问题。
+**解决**: ① 最可靠：把长跑 claude/codex 的窗格换到 iTerm2（无此 bug）。② 临时救画面：拖动改变窗口大小强制全量重绘，缺失输出即出现（数据都在）。③ 减少并发降低严重度。④ 跟踪 issue #12062，修复后再升级 Ghostty。⚠️ 排查教训：初期误判为双显卡自动切换（gpuswitch=2）卡 Metal，查 issue 后确认主因是同步输出+状态栏渲染冲突，勿凭硬件特征臆断。
+**标签**: ghostty, claude-code, 终端渲染, metal, synchronized-output, dec2026, tui, 输出不刷新, macos
