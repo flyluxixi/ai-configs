@@ -86,3 +86,10 @@
 **根因**: Ghostty 已知开放 bug（Discussion #12062，影响 1.3.1 stable，2026-04 报告，未修复；前身 #11001）。Claude Code 的 TUI 同时使用 DEC 2026 同步输出（\x1b[?2026h...l）+ DECSTBM 滚动区域固定状态栏 + 高频增量光标定位，触发 Ghostty Metal 增量渲染不刷新；多后台 agent 并发会持续恶化。非数据丢失、非进程挂起、非机器问题。
 **解决**: ① 最可靠：把长跑 claude/codex 的窗格换到 iTerm2（无此 bug）。② 临时救画面：拖动改变窗口大小强制全量重绘，缺失输出即出现（数据都在）。③ 减少并发降低严重度。④ 跟踪 issue #12062，修复后再升级 Ghostty。⚠️ 排查教训：初期误判为双显卡自动切换（gpuswitch=2）卡 Metal，查 issue 后确认主因是同步输出+状态栏渲染冲突，勿凭硬件特征臆断。
 **标签**: ghostty, claude-code, 终端渲染, metal, synchronized-output, dec2026, tui, 输出不刷新, macos
+
+## 2026-06-02 - codex/responses 的 image_generation 工具锁定 gpt-image-2，透明背景不可用
+
+**现象**: 复用 Codex 登录态走 chatgpt.com/backend-api/codex/responses 端点的 hosted image_generation 工具生图时，传 background=transparent 后端返回 400 "Transparent background is not supported for this model"；即便在 tool 配置里指定 model=gpt-image-1.5 也被忽略，仍报同样错误。
+**根因**: 该内部端点的 hosted image_generation 工具把生图模型锁死为 gpt-image-2（GPT Image 家族当前默认），客户端只能传 size/quality/background，无法切换生图模型；而 gpt-image-2 本身不支持透明背景（codex 二进制提示需改用 gpt-image-1.5）。tool.model 字段在该端点被无视。这是把生图模型选择权交给后端的代价：省事但不可控、不可指定。imgen（复用 codex 登录态的 Node CLI）与 d-image-2 的 codex 后端都受此限制。
+**解决**: 需要透明背景时只能走公开 OpenAI Images API + 显式指定 gpt-image-1.5（需独立 OPENAI_API_KEY 计费）；codex 登录态路径放弃透明背景需求。opaque/auto 背景在 codex 后端正常可用。
+**标签**: openai, chatgpt, codex, image_generation, gpt-image-2, gpt-image-1.5, 透明背景, responses-api, 锁定模型, 第三方API
