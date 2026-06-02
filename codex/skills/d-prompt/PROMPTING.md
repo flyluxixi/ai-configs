@@ -162,6 +162,8 @@ in [setting/background], [lighting and mood], [composition/angle]. [quality dire
 
 给用户过目四样，等其确认或微调：
 
+> **载体格式（强制）**：下面两份 prompt 本体各自用 fenced code block（三反引号）整段包裹，**禁止用引用块 / blockquote（`>`）**。理由：prompt 的唯一用途就是被整段复制粘贴到 ChatGPT / gpt-image，代码块有一键复制且复制出来是纯文本；引用块在终端 CLI 里每行带 `>` 前缀，用户没法整段干净复制。尺寸 / 推断项等说明文字正常排版，只有 prompt 本体进代码块。
+
 1. **中文版 prompt**（自然语言长句，便于核对语义）。
 2. **英文版 prompt**（自然语言长句；gpt-image / DALL-E 英文更稳，推荐实际使用这版）。
 3. **推荐画布尺寸 / 比例 + 理由**（UI 按平台映射表；纯信息性，用户自行在目标工具设置）。
