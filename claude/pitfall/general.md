@@ -93,3 +93,10 @@
 **根因**: 该内部端点的 hosted image_generation 工具把生图模型锁死为 gpt-image-2（GPT Image 家族当前默认），客户端只能传 size/quality/background，无法切换生图模型；而 gpt-image-2 本身不支持透明背景（codex 二进制提示需改用 gpt-image-1.5）。tool.model 字段在该端点被无视。这是把生图模型选择权交给后端的代价：省事但不可控、不可指定。imgen（复用 codex 登录态的 Node CLI）与 d-image-2 的 codex 后端都受此限制。
 **解决**: 需要透明背景时只能走公开 OpenAI Images API + 显式指定 gpt-image-1.5（需独立 OPENAI_API_KEY 计费）；codex 登录态路径放弃透明背景需求。opaque/auto 背景在 codex 后端正常可用。
 **标签**: openai, chatgpt, codex, image_generation, gpt-image-2, gpt-image-1.5, 透明背景, responses-api, 锁定模型, 第三方API
+
+## 2026-06-02 - Intel Mac（x86_64 macOS）被新生态底层库抛弃，AI 推理/原生扩展类依赖装不上
+
+**现象**: 在 Intel Mac（x86_64 macOS）装需要 AI 推理或预编译原生扩展的库反复失败：① 给 d-image-2 装 rembg 做本地 AI 抠图——onnxruntime 无 Python 3.14（cp314）wheel，且 macos x86_64 最高停在 1.23.0/cp313（新版只发 arm64）；降到 Python 3.13 装老版 rembg 2.0.69 又卡在 numba→llvmlite 源码编译失败。② 同模式：imgen 依赖的 @ossiana/node-libcurl-darwin-x64 所有版本里打包的都是 arm64 二进制，x64 渠道从未打对，dlopen 报 incompatible architecture。
+**根因**: 主流 AI / 原生扩展库（onnxruntime、torch、部分 npm 原生包）正停止为 macOS x86_64 发预编译产物，只保留 arm64（Apple Silicon）+ linux/win；叠加 Python 版本过新（3.14 无 cp314 wheel），x86_64 Intel Mac 成为被抛弃的长尾平台。降版本又会拉到更老、需源码编译的依赖（numba/llvmlite 需 LLVM 工具链），层层失败。
+**解决**: ① 动手前先查目标库是否还发 x86_64 macOS wheel（看 PyPI 文件列表 / pip 报错里的 available platforms），不要盲目硬装或层层降版本死磕。② 本地 AI 推理类需求（抠图/分割）改走云端或网页版——如透明 PNG 素材直接用 ChatGPT 网页版（实测能出真 RGBA 透明，免费走订阅）。③ 根治：迁移到 arm64（Apple Silicon）Mac，这类库一行即装。
+**标签**: intel-mac, x86_64, macos, onnxruntime, rembg, numba, llvmlite, node-libcurl, wheel, arm64, 预编译, 平台抛弃, python3.14
