@@ -2,3 +2,7 @@
 PROJECT_STATUS.md
 scripts/update-logs/*
 !scripts/update-logs/.gitkeep
+
+# Python（skill 脚本测试产物）
+__pycache__/
+*.py[cod]
