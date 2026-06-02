@@ -98,9 +98,17 @@
 
 ## Git 规范
 
-**除非用户明确要求，否则禁止主动执行 `git commit` 或 `git push`。** 修改完代码后停在未提交状态，等待用户指令（包括 Codex 代码审查）后再决定是否提交。
+**除非用户明确要求，否则禁止主动执行 `git commit` 或 `git push`。** 没有明确指令时，修改完代码停在未暂存状态，等待用户指令（包括 Codex 代码审查）后再决定是否提交。代码审查、CI 修复、会话收尾、状态文件更新都不构成默认提交授权。
 
-代码审查、CI 修复、会话收尾、状态文件更新都不构成默认提交授权；只有用户明确说“提交”“commit”“推送”“push”“提交并推送”“提交并 push”“发 PR”等关键词时，按 `git commit` + `git push` 一并执行（“发 PR”在 push 之后额外建 PR）。
+**一旦用户说出下列任一关键词，一律 `git commit` + `git push` 两步做完，禁止只 commit 不 push：**
+
+| 用户说 | 执行动作 |
+| --- | --- |
+| “提交”“commit”“提交并推送”“提交并 push” | `git commit` + `git push`（**"提交"/"commit" 单独出现也必须 push，不存在「只 commit 停在本地」这一档**） |
+| “推送”“push” | `git push`（若有未提交改动，先 `git commit` 再 `git push`） |
+| “发 PR” | `git commit` + `git push` 后额外建 PR |
+
+唯一停在本地不 push 的情形：用户**显式**说“先别 push”“只 commit 不要 push”“暂时不推”等。除此之外，commit 完成就必须 push。
 
 **例外**（skill 内部闭环，不需要每次额外授权）：
 
