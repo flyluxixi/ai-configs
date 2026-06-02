@@ -1,6 +1,6 @@
 ---
 name: d-image-2
-description: 生成图片并保存到指定路径，尤其擅长 web/产品后台/App/微信小程序等界面 UI 设计概念稿生图（内置 UI prompt 优化层）。默认复用本机 Codex CLI 登录态（免单独 API key 计费），也可走 OpenAI Images API 的 gpt-image-2。用户提到 d-image-2、gpt-image-2、生成图片、画图、改图、UI 界面设计图、界面效果图、原型图、生成素材、保存图片到文件时使用。
+description: 生成图片并保存到指定路径，尤其擅长 web/产品后台/App/微信小程序等界面 UI 设计概念稿生图（内置 UI prompt 优化层），并能本地裁剪 PNG 局部素材。默认复用本机 Codex CLI 登录态（免单独 API key 计费），也可走 OpenAI Images API 的 gpt-image-2。用户提到 d-image-2、gpt-image-2、生成图片、画图、改图、UI 界面设计图、界面效果图、原型图、生成素材、裁剪图片、裁图、切图、抠图、提取插画/图标、保存图片到文件时使用。
 ---
 
 # d-image-2
