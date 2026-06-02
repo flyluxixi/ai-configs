@@ -15,6 +15,7 @@
 - `codex/luxixi`：指向 `../claude/luxixi` 的 symlink，不维护第二份规则
 - `claude/agents/`、`claude/skills/`、`claude/commands/`：Claude Code 专用资产
 - `claude/pitfall/`：各技术栈踩坑记录数据目录，由 pitfall skill 写入，进版本控制
+- `claude/hooks/`：Claude Code 本地 hook 脚本（如 `lang-guard.py` 语言漂移拦截），进版本控制；由机器本地 `~/.claude/settings.json` 用绝对路径引用，settings.json 本身不进本仓
 - `codex/skills/`：Codex 专用 skills，启用时同步到 `~/.codex/skills/`
 - `scripts/update.sh`：Claude Code 生态更新脚本，只负责更新 Claude CLI 和第三方 Claude agents / skills / commands
 - `docs/`：架构规划和维护说明
