@@ -107,3 +107,17 @@
 **根因**: 经 codex/responses 端点的逆向访问（curl_cffi 伪装客户端 + 短时间高频 + 非交互 + quality 全 high）触发 OpenAI 反滥用检测，针对性失效 codex 客户端的 access+refresh token，并对 codex 重新授权加 step-up 手机验证。账号本身未被封（网页版正常），被限制的是 codex 客户端这条通道。关键时序证据：codex 升级 0.136.0 后还成功生图 3 次、第 4 次才失效——是累积异常访问触发风控，不是版本升级导致（初判归因升级是错的）。
 **解决**: ① 逆向方案（codex 端点 / 网页版皆然）脆弱且对抗性强，不可依赖做关键流程。② codex 生图后端降级为「能用就用、随时会挂」的低频一次性工具，别高频/批量/全 high 触发风控；验手机号能恢复 codex 登录，但继续逆向会反复被风控、账号风险升级。③ 稳定生图回到网页版手动或官方付费 gpt-image API（--via openai，不依赖逆向、不被风控、顺带解决透明）。④ 关键架构启示：把 prompt 优化层与生图后端解耦——优化产出的英文 prompt 喂任何渠道都成立，价值独立于易失效的逆向后端。
 **标签**: codex, 逆向, 反滥用, 风控, oauth, token失效, invalidated, refresh-token, step-up, 手机验证, chatgpt, image_generation, responses-api, 解耦
+
+## 2026-06-05 - Python ctypes 读 64 位进程内存：必须显式设 restype/argtypes，否则地址被截断
+
+**现象**: 用 ctypes 调 ReadProcessMemory/VirtualQueryEx 读 64 位进程内存，读取全失败或读到错误地址，地址大于 32 位时尤甚。
+**根因**: ctypes 默认把函数返回值和未声明的指针/地址参数当 c_int(32位)，64 位地址被截断成低 32 位，传给 Win32 API 即指向错误内存。MEMORY_BASIC_INFORMATION 等结构体在 64 位下还有对齐填充字段(__alignment)，缺了会错位。
+**解决**: 显式声明每个 Win32 函数的 restype/argtypes：句柄/地址用 c_void_p、大小用 c_size_t、返回的地址/大小用 c_void_p/c_size_t；结构体按 64 位布局补 __alignment 填充。并检测 sys.maxsize 确保用 64 位 Python（32 位 Python 无法完整读 64 位进程）。
+**标签**: python, ctypes, windows-api, readprocessmemory, virtualqueryex, 64位, 地址截断, restype, argtypes
+
+## 2026-06-05 - 监控 SQLite WAL 是否被写入要靠 mtime 不能靠 size
+
+**现象**: 轮询 SQLite 的 -wal 文件检测"有没有新写入"，发现 size 一直不变，误判"没变化"，漏掉所有写入事件。
+**根因**: SQLite WAL 文件预分配固定大小（如几 MB）、原地循环覆盖写；新数据写进去不改 size，只更新 mtime。靠 size diff 判断变化必然全漏。
+**解决**: 用文件 mtime 判断 WAL 是否被写入，不用 size。记录上次 mtime，变化即有写入。注意 mtime 在不同文件系统的精度，必要时结合内容哈希。
+**标签**: sqlite, wal, mtime, size, 文件监控, 变化检测, 预分配, 原地写
