@@ -39,8 +39,8 @@
   - `NUMERIC` / `DECIMAL` 存原始单位（推荐默认，语义直观、SQL 内可控舍入、天然支持多币种与高精度）
   - `BIGINT` 存最小货币单位（如分），须全栈文档化单位、显式定义除法 / 分摊的舍入策略；多币种场景须按币种处理最小单位（日元乘 1、第纳尔乘 1000）
 - 汇率、需要 4 位以上小数的单价一律用 `NUMERIC`，不用整数缩放（整数缩放对高精度小数要乘 `10^n`，单位约定易错）
-- 变长字符串优先用 `TEXT`，需要长度上限时用 `TEXT + CHECK (char_length(col) <= N)`，不用带长度的 `VARCHAR(n)`。原因：PG 里 `TEXT` 与 `VARCHAR(n)` 底层同一种存储、读写性能完全相同（与 MySQL 不同，`VARCHAR(n)` 不更快也不更省），选 `VARCHAR(n)` 唯一多得到的只是一个长度上限检查；而这个检查改用 `CHECK` 约束实现，将来调整长度限制时可用 `ADD CONSTRAINT ... NOT VALID` + `VALIDATE CONSTRAINT` 避免长时间锁表，改 `VARCHAR(n)` 列类型则可能触发全表重写并持有 `ACCESS EXCLUSIVE` 锁
-- 禁止字段名重复所在表名；外键字段除外（如 `users` 表用 `name` 而非 `user_name`、`orders` 表用 `status` 而非 `order_status`）
+- 变长字符串按是否有明确长度上限选型：业务上有明确且相对稳定的长度上限（手机号、身份证号、固定位编码、`name` / `title` 等）→ 用 `VARCHAR(n)`，让 schema 直接自文档化业务约束；无明确上限（正文、备注、富文本、外部不可控来源）→ 用 `TEXT`。不要为了"统一"把所有列都改成 `TEXT + CHECK (char_length(col) <= N)`。前提事实：PG 里 `TEXT` 与 `VARCHAR(n)` 底层同一种存储、读写性能完全相同（与 MySQL 不同，`VARCHAR(n)` 不更快也不更省），所以选型只看可维护性与可读性——有稳定上限时 `VARCHAR(n)` 的自文档化优于额外写一条 CHECK。唯一 `TEXT + CHECK` 真正占优的场景是长度上限会反复**缩小**：`ALTER ... TYPE VARCHAR(n)` 缩小 `n` 要全表重写并长持 `ACCESS EXCLUSIVE` 锁，而调整 CHECK 可用 `DROP CONSTRAINT` + `ADD CONSTRAINT ... NOT VALID` + `VALIDATE CONSTRAINT`（`VALIDATE` 仅持 `SHARE UPDATE EXCLUSIVE`，不阻塞读写）避免长锁；**放宽**上限或 `VARCHAR(n)` ↔ `TEXT` 互转是 binary coercible，两种方式都只动元数据、不重写表，无差异
+- `CHECK` 约束只承载「数据格式兜底」——长度、字符集、纯数字 / 大小写、基本结构（如手机号 `mobile ~ '^1\d{10}$'`、邮编位数、非空非空白），不承载随业务 / 监管变化的取值规则（手机号段 `^1[3-9]\d{9}$`、行政区划码、银行卡 BIN、邮箱域名白名单等）。原因：取值规则变更频率远高于底层格式（携号转网 / 虚商扩号段 / 新放号段持续打破 `[3-9]` 经验区间），固化进 `CHECK` 意味着每次都要 `DROP/ADD CONSTRAINT` 迁移且历史数据可能卡 `VALIDATE`；且严格约束误伤合法新值 = 注册 / 下单直接失败的线上事故，代价远高于「格式合法但取值存疑」放进库后由应用层再拦一道。严格取值校验放应用层（可配置、可热更新、可随监管同步），数据库这层宁松勿误伤
 - 禁止字段名长度超过 30 字符；接近上限（> 25 字符）必须先穷举优化手段：① 字段名是否重复了表名 ② 是否能用允许的缩写 ③ 是否可拆分为多个字段 ④ 字段是否放错了表。穷举后仍超过 30 字符的，才允许在迁移说明中写明业务必要性
 - 禁止布尔字段名包含超过 2 段业务词；剔除 `is_` / `has_` / `can_` / `include_` 前缀后按下划线分段计数（反例：`is_deal_cooperation_committed` 剔除前缀后为 `deal / cooperation / committed` 共 3 段）
 - 禁止用单一 `xxx_at TIMESTAMPTZ` 字段表达可变 / 可撤销 / 多阶段状态；订单的 `paid` / `shipped` / `cancelled` / `refunded`、审核的 `approved` / `rejected`、任何会回退或有部分完成态的流程，必须用 `SMALLINT + CHECK 约束` 状态机字段表达当前状态，并按需配套 `xxx_at TIMESTAMPTZ` 审计时间字段
