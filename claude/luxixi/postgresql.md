@@ -47,7 +47,7 @@
 - 状态字段命名：表只有单一主生命周期时用 `status`；表内存在多个独立状态域（如订单的支付 / 履约 / 退款 / 审核）时必须用业务域限定名（如 `payment_status` / `shipment_status` / `refund_status` / `review_status`），这类业务域限定名不受"字段名重复所在表名"约束
 - 只有业务规则明确禁止反向操作的事件（如事务 `committed`、法律意义上 `signed`）才允许用 `xxx_at TIMESTAMPTZ NULL` 表达"是否+何时"；`published` / `archived` / `deleted` 默认视为可撤销（可下架、可恢复、软删除可恢复），除非迁移说明写明不可撤销依据，否则必须用状态字段表达
 - 禁止使用 `is_xxx` / `has_xxx` / `can_xxx` / `include_xxx` 布尔字段表达上述状态规则约束的状态语义；这类字段必须按上述状态规则改用状态机字段或 `xxx_at TIMESTAMPTZ`
-- 二元状态用布尔还是状态机的判据：同时满足"无需审计状态变更时间"且"业务上永远只有两态"才用布尔（如 `is_active` / `is_public`，不关心何时激活、不会衍生第三态）；只要需要记录状态变更时间（`xxx_at`）或可能扩出中间态（`draft` / `scheduled` / `archived` 等），即使当前只有两态也必须用 `SMALLINT + CHECK` 状态机（如 `published` 通常配 `published_at` 且可能衍生草稿态 → 用 `status`，而非 `is_published`）
+- 二元状态用布尔还是状态机的判据：同时满足"无需审计状态变更时间"且"业务上永远只有两态"才用布尔（如 `is_active` / `is_public`，不关心何时激活、不会衍生第三态）；只要需要记录状态变更时间（`xxx_at`）或可能扩出中间态（`draft` / `scheduled` / `archived` 等），即使当前只有两态也必须用 `SMALLINT + CHECK` 状态机（如 `published` 通常配 `published_at` 且可能衍生草稿态 → 用 `status`，而非 `is_published`）。判据只看业务本质（是否需审计时间 + 是否多态），不看字段名是否含"发布 / 公开 / 上线"语义——同是"公开发布"含义，两态且不记时间的用布尔（`is_public`），需 `published_at` 或会长草稿 / 定时态的用 `status`
 - 禁止自创字段名缩写；允许的缩写白名单按类别列出，业务词（如 `addr` / `amt` / `qty` / `desc` / `info` / `num`）一律写全：
   - 标识：`id` / `uuid` / `sku`
   - 网络：`url` / `uri` / `ip` / `cidr` / `mac` / `dns`
