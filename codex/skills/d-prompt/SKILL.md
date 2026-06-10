@@ -8,7 +8,7 @@ description: 把图像需求优化成高质量生图 prompt（只产提示词、
 把用户的图像需求，优化成一段可直接粘贴到 **ChatGPT / gpt-image-2 / DALL-E** 的高质量自然语言 prompt。**只产 prompt，不调用任何生图端点**——零外部依赖，优化全程由会话 AI 自身推理完成。
 
 定位与边界：
-- 本 skill 的产物是**提示词**，不是图片。用户拿这段 prompt 自己去任意生图工具出图。要本 skill 直接生图，用 **d-image-2**（它内部也会优化 prompt 再生图）。
+- 本 skill 的产物是**提示词**，不是图片。用户拿这段 prompt 自己去任意生图工具出图。
 - 主目标模型：**`gpt-image-2`**（含 `gpt-image-2-2026-04-21`；ChatGPT 网页版 2026 年默认底模），向下兼容 `gpt-image-1` / DALL-E 3。统一风格：**自然语言完整句式**，不堆逗号 tag 串、不带 `--ar`/`--v` 等参数（那是 Midjourney / SD 的语法，不在本 skill 范围）。
 - 主用途是界面 UI 概念稿优化；非 UI 需求（人像/风景/插画/海报等）走轻量通用兜底。
 
@@ -61,8 +61,6 @@ description: 把图像需求优化成高质量生图 prompt（只产提示词、
      - **不要做的事**：不主动 `git add` / `git commit` / `git push`——`prompts/` 是用户的项目资产，是否提交由用户决定；写完文件告知路径即可。
    - 保存完成后即结束，不生图。
 
-## 与其他 skill 的边界
+## 产物去向
 
-- **要图片** → d-image-2（它内部也会优化 prompt 再生图）。
-- **只要提示词** → 本 skill。
-- 本 skill 产物可直接喂给 d-image-2 的 `--prompt`，也可粘贴到 ChatGPT 网页版 / 其他 gpt-image 接口。
+本 skill 只产提示词、不生图；产物可直接粘贴到 ChatGPT 网页版 / gpt-image API 等任意生图工具使用。
