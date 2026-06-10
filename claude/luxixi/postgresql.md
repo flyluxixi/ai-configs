@@ -33,6 +33,9 @@
 - 禁止应用层逐条查询可批量读取的数据；必须使用集合查询
 - 禁止大偏移分页不评估 keyset pagination
 - 禁止软删除逻辑不一致或长期不清理孤儿记录
+
+## 类型选型与建模
+
 - 禁止使用数据库 ENUM 类型；改用 SMALLINT + CHECK（理由：ENUM 增删值需 `ALTER TYPE`、无法删除已有值、取值顺序固定难调整、跨库迁移困难）
 - 类型选择按数据本质：永远只有"是/否"的字段（含 NULL=未知）用 **BOOLEAN**；真枚举（≥3 个值或业务上可能扩到 ≥3 档）用 SMALLINT + CHECK 约束限制取值范围。不要为了"将来可能扩档"先把布尔伪装成 SMALLINT 0/1——BOOLEAN 占 1 字节比 SMALLINT 2 字节更紧凑，未来真要扩档时改类型也是常规迁移
 - 金额、价格、精确小数必须精确表示，禁止用 `FLOAT` / `DOUBLE PRECISION` / `REAL`——二进制浮点无法精确表示十进制小数，会导致对账偏移和累计误差。两种合法方案任选其一并在项目内统一：
@@ -41,23 +44,10 @@
 - 汇率、需要 4 位以上小数的单价一律用 `NUMERIC`，不用整数缩放（整数缩放对高精度小数要乘 `10^n`，单位约定易错）
 - 变长字符串按是否有明确长度上限选型：业务上有明确且相对稳定的长度上限（手机号、身份证号、固定位编码、`name` / `title` 等）→ 用 `VARCHAR(n)`，让 schema 直接自文档化业务约束；无明确上限（正文、备注、富文本、外部不可控来源）→ 用 `TEXT`。不要为了"统一"把所有列都改成 `TEXT + CHECK (char_length(col) <= N)`。前提事实：PG 里 `TEXT` 与 `VARCHAR(n)` 底层同一种存储、读写性能完全相同（与 MySQL 不同，`VARCHAR(n)` 不更快也不更省），所以选型只看可维护性与可读性——有稳定上限时 `VARCHAR(n)` 的自文档化优于额外写一条 CHECK。唯一 `TEXT + CHECK` 真正占优的场景是长度上限会反复**缩小**：`ALTER ... TYPE VARCHAR(n)` 缩小 `n` 要全表重写并长持 `ACCESS EXCLUSIVE` 锁，而调整 CHECK 可用 `DROP CONSTRAINT` + `ADD CONSTRAINT ... NOT VALID` + `VALIDATE CONSTRAINT`（`VALIDATE` 仅持 `SHARE UPDATE EXCLUSIVE`，不阻塞读写）避免长锁；**放宽**上限或 `VARCHAR(n)` ↔ `TEXT` 互转是 binary coercible，两种方式都只动元数据、不重写表，无差异
 - `CHECK` 约束的纳入判据是**约束的变更频率 + 误伤代价**，不是「格式 vs 业务」这条伪分界（很多看似"格式"的规则其实含业务假设）。只放变更频率极低、误伤代价极小的约束：长度（`char_length(col) = 11`）、字符集 / 纯数字（`col ~ '^\d+$'`）、大小写、非空非空白等真正中立的格式兜底；不放随业务 / 监管高频变化、误伤即线上事故的取值规则（手机号段 `^1[3-9]\d{9}$`、行政区划码、银行卡 BIN、邮箱域名白名单等）。原因：高频取值规则固化进 `CHECK` 每次变更都要 `DROP/ADD CONSTRAINT` 迁移且历史数据可能卡 `VALIDATE`；严格约束误伤合法新值 = 注册 / 下单直接失败的线上事故，代价远高于「格式合法但取值存疑」放进库后由应用层再拦一道。这类高频严格校验放应用层（可配置、可热更新、可随监管同步），数据库这层宁松勿误伤。判据按稳定性分级，不按"格式还是业务"：手机号兜底用 `mobile ~ '^1\d{10}$'`（"1 开头 11 位"也是弱业务假设，但几十年不变、误伤风险极小，可入 `CHECK`），而第二位号段 `[3-9]` 受携号转网 / 虚商扩号段 / 新放号段高频冲击，必须排除——同属号码约束，分界只在变更频率，不在它是不是"纯格式"
-- 禁止字段名长度超过 30 字符；接近上限（> 25 字符）必须先穷举优化手段：① 字段名是否重复了表名 ② 是否能用允许的缩写 ③ 是否可拆分为多个字段 ④ 字段是否放错了表。穷举后仍超过 30 字符的，才允许在迁移说明中写明业务必要性
-- 禁止布尔字段名包含超过 2 段业务词；剔除 `is_` / `has_` / `can_` / `include_` 前缀后按下划线分段计数（反例：`is_deal_cooperation_committed` 剔除前缀后为 `deal / cooperation / committed` 共 3 段）
 - 禁止用单一 `xxx_at TIMESTAMPTZ` 字段表达可变 / 可撤销 / 多阶段状态；订单的 `paid` / `shipped` / `cancelled` / `refunded`、审核的 `approved` / `rejected`、任何会回退或有部分完成态的流程，必须用 `SMALLINT + CHECK 约束` 状态机字段表达当前状态，并按需配套 `xxx_at TIMESTAMPTZ` 审计时间字段
-- 状态字段命名：表只有单一主生命周期时用 `status`；表内存在多个独立状态域（如订单的支付 / 履约 / 退款 / 审核）时必须用业务域限定名（如 `payment_status` / `shipment_status` / `refund_status` / `review_status`），这类业务域限定名不受"字段名重复所在表名"约束
 - 只有业务规则明确禁止反向操作的事件（如事务 `committed`、法律意义上 `signed`）才允许用 `xxx_at TIMESTAMPTZ NULL` 表达"是否+何时"；`published` / `archived` / `deleted` 默认视为可撤销（可下架、可恢复、软删除可恢复），除非迁移说明写明不可撤销依据，否则必须用状态字段表达
 - 禁止使用 `is_xxx` / `has_xxx` / `can_xxx` / `include_xxx` 布尔字段表达上述状态规则约束的状态语义；这类字段必须按上述状态规则改用状态机字段或 `xxx_at TIMESTAMPTZ`
 - 二元状态用布尔还是状态机的判据：同时满足"无需审计状态变更时间"且"业务上永远只有两态"才用布尔（如 `is_active` / `is_public`，不关心何时激活、不会衍生第三态）；只要需要记录状态变更时间（`xxx_at`）或可能扩出中间态（`draft` / `scheduled` / `archived` 等），即使当前只有两态也必须用 `SMALLINT + CHECK` 状态机（如 `published` 通常配 `published_at` 且可能衍生草稿态 → 用 `status`，而非 `is_published`）。判据只看业务本质（是否需审计时间 + 是否多态），不看字段名是否含"发布 / 公开 / 上线"语义——同是"公开发布"含义，两态且不记时间的用布尔（`is_public`），需 `published_at` 或会长草稿 / 定时态的用 `status`
-- 禁止自创字段名缩写；允许的缩写白名单按类别列出，业务词（如 `addr` / `amt` / `qty` / `desc` / `info` / `num`）一律写全：
-  - 标识：`id` / `uuid` / `sku`
-  - 网络：`url` / `uri` / `ip` / `cidr` / `mac` / `dns`
-  - 协议：`http` / `https` / `tcp` / `udp` / `ssh` / `ftp` / `smtp`
-  - 数据格式：`json` / `xml` / `csv` / `yaml` / `html`
-  - 认证：`jwt` / `oauth` / `otp` / `mfa` / `sso`
-  - 时间：`utc` / `tz` / `ttl`
-  - 行业：`sql` / `api` / `iso` / `cdn`
-
-  白名单中的缩写仅允许作为完整字段名的一部分，不允许单独作为字段名（例：`mfa_enabled_at` ✅、`jwt_expires_at` ✅、`mfa` 单独作字段名 ❌）；认证凭证 / 密钥 / token 内容不得因缩写白名单的存在而直接落入普通业务字段，应按密钥管理规范单独建模
 
 ## 命名规范
 
@@ -73,7 +63,20 @@
   - `include_` 包含 / 打包："**包不包含** X"（X 是子项；`include_property_fee` / `include_tax`）
 
   禁止使用 `allow_` / `enable_` 等其他前缀（与 `can_` 同义重复）；禁止使用无语义前缀的布尔字段名
-- 布尔字段仅用于布尔语义场景（静态属性 / 拥有 / 许可 / 包含）；布尔 vs 状态机 vs `xxx_at` 事件时间戳的完整判据以「禁止事项」中的状态规则条目为准，此处不重复展开，两处表述如有出入以「禁止事项」为准
+- 布尔字段仅用于布尔语义场景（静态属性 / 拥有 / 许可 / 包含）；布尔 vs 状态机 vs `xxx_at` 事件时间戳的完整判据以「类型选型与建模」中的状态规则条目为准，此处不重复展开，两处表述如有出入以「类型选型与建模」为准
+- 状态字段命名：表只有单一主生命周期时用 `status`；表内存在多个独立状态域（如订单的支付 / 履约 / 退款 / 审核）时必须用业务域限定名（如 `payment_status` / `shipment_status` / `refund_status` / `review_status`），这类业务域限定名不受"字段名重复所在表名"约束
+- 禁止字段名长度超过 30 字符；接近上限（> 25 字符）必须先穷举优化手段：① 字段名是否重复了表名 ② 是否能用允许的缩写 ③ 是否可拆分为多个字段 ④ 字段是否放错了表。穷举后仍超过 30 字符的，才允许在迁移说明中写明业务必要性
+- 禁止布尔字段名包含超过 2 段业务词；剔除 `is_` / `has_` / `can_` / `include_` 前缀后按下划线分段计数（反例：`is_deal_cooperation_committed` 剔除前缀后为 `deal / cooperation / committed` 共 3 段）
+- 禁止自创字段名缩写；允许的缩写白名单按类别列出，业务词（如 `addr` / `amt` / `qty` / `desc` / `info` / `num`）一律写全：
+  - 标识：`id` / `uuid` / `sku`
+  - 网络：`url` / `uri` / `ip` / `cidr` / `mac` / `dns`
+  - 协议：`http` / `https` / `tcp` / `udp` / `ssh` / `ftp` / `smtp`
+  - 数据格式：`json` / `xml` / `csv` / `yaml` / `html`
+  - 认证：`jwt` / `oauth` / `otp` / `mfa` / `sso`
+  - 时间：`utc` / `tz` / `ttl`
+  - 行业：`sql` / `api` / `iso` / `cdn`
+
+  白名单中的缩写仅允许作为完整字段名的一部分，不允许单独作为字段名（例：`mfa_enabled_at` ✅、`jwt_expires_at` ✅、`mfa` 单独作字段名 ❌）；认证凭证 / 密钥 / token 内容不得因缩写白名单的存在而直接落入普通业务字段，应按密钥管理规范单独建模
 - 时间戳字段必须命名为 `created_at`、`updated_at`，软删除时间戳必须命名为 `deleted_at`；所有时间戳列类型必须为 `TIMESTAMPTZ`，禁止使用无时区的 `TIMESTAMP`（无时区类型不记录偏移，跨时区写入 / 读取产生歧义）
 - 禁止使用 PostgreSQL 关键字或高冲突通用词作为表名或字段名（如 `user`、`order`、`type`、`value`）；是否属于保留字必须以项目锁定 PostgreSQL 版本的官方关键字表为准
 - 禁止同一数据库内混用不同命名风格
