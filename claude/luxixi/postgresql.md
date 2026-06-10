@@ -73,7 +73,7 @@
   - `include_` 包含 / 打包："**包不包含** X"（X 是子项；`include_property_fee` / `include_tax`）
 
   禁止使用 `allow_` / `enable_` 等其他前缀（与 `can_` 同义重复）；禁止使用无语义前缀的布尔字段名
-- 布尔字段仅用于布尔语义场景（静态属性 / 拥有 / 许可 / 包含），不得用于多状态、多阶段、可撤销业务；业务规则明确禁止反向操作的事件用 `xxx_at TIMESTAMPTZ NULL`；可撤销 / 多阶段 / 多状态业务用 `SMALLINT + CHECK` 状态机字段——单一主生命周期用 `status`，多个独立状态域用业务域限定名（如 `payment_status` / `shipment_status`），配套 `xxx_at TIMESTAMPTZ` 审计时间字段
+- 布尔字段仅用于布尔语义场景（静态属性 / 拥有 / 许可 / 包含）；布尔 vs 状态机 vs `xxx_at` 事件时间戳的完整判据以「禁止事项」中的状态规则条目为准，此处不重复展开，两处表述如有出入以「禁止事项」为准
 - 时间戳字段必须命名为 `created_at`、`updated_at`，软删除时间戳必须命名为 `deleted_at`；所有时间戳列类型必须为 `TIMESTAMPTZ`，禁止使用无时区的 `TIMESTAMP`（无时区类型不记录偏移，跨时区写入 / 读取产生歧义）
 - 禁止使用 PostgreSQL 关键字或高冲突通用词作为表名或字段名（如 `user`、`order`、`type`、`value`）；是否属于保留字必须以项目锁定 PostgreSQL 版本的官方关键字表为准
 - 禁止同一数据库内混用不同命名风格
@@ -106,6 +106,7 @@
 
 ```sql
 -- 找未建索引的外键（检查完整前缀，支持复合 FK）
+-- 注意：要求索引前缀与 FK 列顺序完全一致；列顺序不同但同样可用的复合索引会被误报为缺索引，结果需人工复核
 SELECT c.conrelid::regclass AS table_name,
        c.conname AS fk_name,
        array_to_string(ARRAY(
