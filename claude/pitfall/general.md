@@ -128,3 +128,10 @@
 **根因**: 某些应用（微信等）在 schema 标 TEXT 的列里实际存 protobuf/二进制（常见命名 `*_buf_` / `extra_buffer` / `ext_buffer`）。Python sqlite3 默认 `text_factory=str`，对 TEXT 列一律按 UTF-8 解码，撞到二进制即崩；`SELECT *` 把这些列也取出来就触发。
 **解决**: ① 容错解码：`con.text_factory = lambda b: b.decode('utf-8', 'replace')`；② 或 SELECT 只取明文列、避开 `*_buf_`/`extra_buffer` 等二进制列；③ 需要二进制内容时按 BLOB 取出（`con.text_factory = bytes` 或单独取该列）再按 protobuf 解析。
 **标签**: sqlite, sqlite3, python, text_factory, protobuf, utf-8, 二进制列, blob, could-not-decode, 微信数据库
+
+## 2026-06-10 - 给「下线服务」叠加不必要的备份整理步骤，空变量+sudo+通配符把 / 顶层权限全改坏
+
+**现象**: 任务只是「下线一个服务」，却在自行添加的「备份整理」环节连环出错，最终一条 `sudo chown user:user "$BK"/*` 因 $BK 为空退化成 `sudo chown user:user /*` + `chmod 600 /*`，把 / 下所有顶层目录属主改成普通用户、权限改 600。SSH 认证能过但起不了 shell（`/bin/bash: Permission denied`），整机只能靠带外 root 抢救。
+**根因**: 两层叠加。①【流程，主因】给简单任务叠加了它根本不需要的高风险步骤：备份时用 `sudo cp` 复制 root 拥有的系统配置（nginx/systemd），使备份副本变成 root 属主；随后 `chmod -R 700 "$BK"` 想锁定备份目录、对 root 属主文件失败；又专门写第二条命令去「补救」这个自己造出来的属主问题——补救命令即 `sudo chown $(whoami) "$BK"/*`。整条 chown/chmod 与「下线服务」毫无关系，是自造问题再补救。②【机制】第一条命令 `set -e` 在 chmod 失败处提前退出，跳过了写「备份路径标记文件」的最后一句；第二条 `BK=$(cat 标记文件)` 读到空串，`"$BK"/*` 退化为 `/*`（chmod/chown 默认跟随 /bin→/usr/bin 等软链打到本体）；普通用户丢失目录执行位后无法穿过 /usr，SSH 在起登录 shell 阶段失败。
+**解决**: 救回——经非 SSH 通道（VM/VNC 控制台或厂商救援模式）以 root 登录（root 有 CAP_DAC_OVERRIDE 可无视缺失的目录执行位，普通用户即便是属主也不行），`chown root:root` + `chmod 755` 恢复顶层目录（/tmp 设 1777、/root 设 700）；损坏与修复均非递归（无 -R），目录内文件未受影响，SELinux 标签不受 chmod/chown 影响。预防——① 不给简单任务叠加它不需要的步骤：本例「下线服务」根本不需要 chown/chmod 备份文件；备份直接放当前用户自己可写的目录、不用 sudo cp 制造 root 属主文件，从源头消除「补救」需求。② 破坏性命令（尤其叠 sudo + 通配符 /*）前显式校验变量非空（`[ -n "$VAR" ]` / `${VAR:?}`），绝不在 sudo/glob 里用可能为空的变量，执行前先 echo 预演展开。③ `set -e` 脚本警惕「中断点跳过了后续命令依赖的赋值」。
+**标签**: shell, sudo, chmod, chown, 空变量, 通配符, glob, set -e, 过度设计, 自造问题再补救, 权限恢复, dac_override, ssh无法登录, 运维事故
