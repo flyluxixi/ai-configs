@@ -155,5 +155,5 @@
 
 **现象**: Claude Code 里 `ls`/`find` 查目录，返回 `(empty)`，但目录里实际有文件（如 `database/sql/` 里明明有 `juhaozu.sql`）。模型把空输出当作"目录为空/文件不存在"下结论，在假前提上继续推理，严重时诱发编造后续内容。
 **根因**: PreToolUse hook（`rtk hook claude`）把裸 `ls`/`find`/`grep` 等命令改写为 `rtk ls` 等包装命令以省 token；rtk 0.37.2 对 ls/find 的输出过滤有 bug，部分场景把有内容的结果过滤成 `(empty)`。空输出本身不报错，模型无从察觉被过滤。
-**解决**: ① 根治：rtk 配置（macOS 在 `~/Library/Application Support/rtk/config.toml`）`[hooks] exclude_commands = ["ls", "find"]`，这两个命令不再被改写（ls/find 输出短，走 rtk 本无节省价值）；改完用 `rtk hook check "ls /tmp"` 验证输出 `No rewrite`。② 复核渠道：`rtk proxy <原命令>`（官方原样透传）或绝对路径调用（`/usr/bin/find`、`/bin/ls`，hook 只匹配裸命令名）。③ 行为规矩：rtk 包装命令的空输出/「未找到」一律不作为"不存在"的证据，只有阳性结果可信；下"不存在"结论前必须经 ② 复核。`grep` 仍走 rtk（token 节省大头、暂无假输出实锤），一旦出现同类问题立即加进 exclude_commands。
+**解决**: ① 根治：rtk 配置（macOS 在 `~/Library/Application Support/rtk/config.toml`）`[hooks] exclude_commands = ["ls", "find"]`，这两个命令不再被改写（ls/find 输出短，走 rtk 本无节省价值）；改完用 `rtk hook check "ls /tmp"` 验证输出 `No rewrite`。② 复核渠道：`rtk proxy <原命令>`（官方原样透传）或绝对路径调用（`/usr/bin/find`、`/bin/ls`，hook 只匹配裸命令名）。③ 行为规矩：rtk 包装命令的空输出/「未找到」一律不作为"不存在"的证据，只有阳性结果可信；下"不存在"结论前必须经 ② 复核。`grep` 仍走 rtk（token 节省大头、暂无假输出实锤），一旦出现同类问题立即加进 exclude_commands。④ 升级：rtk 0.42.3 实测已修——简单 ls/find 结果正确，不支持的复合 find 表达式（-o/-exec 等）从静默吐空改为显式报错 `Use find directly`，静默失败模式已消除；exclude_commands 保留作零成本双保险。
 **标签**: rtk, claude-code, hook, ls, find, 假输出, empty, 输出过滤, 误判, exclude_commands
