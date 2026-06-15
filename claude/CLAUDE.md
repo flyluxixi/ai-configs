@@ -100,9 +100,8 @@
 
 ## 工具使用规范
 
-- Shell 命令使用 `rtk` 前缀执行
 - 查询第三方库文档优先使用 context7，不得凭训练记忆回答 API / 配置细节
-- 只有 context7 明确返回“未找到”时才降级到 WebFetch
+- 只有 context7 明确返回”未找到”时才降级到 WebFetch
 
 ## Git 规范
 
@@ -140,5 +139,3 @@ Pull Request：
 1. 以 PR 目标分支作为 base，分析完整 commit 历史，不只看最新一条
 2. 用 `git diff <base-branch>...HEAD` 查看全量变更
 3. PR 描述包含：变更摘要、测试计划
-
-@~/.claude/RTK.md
