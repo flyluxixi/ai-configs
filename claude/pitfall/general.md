@@ -150,10 +150,3 @@
 - 损坏与修复**均非递归**（无 -R），目录内文件内容/属主未受影响；`/` 本身未被动；SELinux 标签不受 chmod/chown 影响，无需 restorecon。
 **预防**: ① 不给简单任务叠加它不需要的步骤：本例「下线服务」根本不需要 chown/chmod 备份文件；备份直接放当前用户自己可写的目录、不用 sudo cp 制造 root 属主文件，从源头消除「补救」需求。② 破坏性命令（尤其叠 sudo + 通配符 /*）前显式校验变量非空（`[ -n "$VAR" ]` / `${VAR:?}`），绝不在 sudo/glob 里用可能为空的变量，执行前先 echo 预演展开。③ `set -e` 脚本警惕「中断点跳过了后续命令依赖的赋值」。
 **标签**: shell, sudo, chmod, chown, 空变量, 通配符, glob, set -e, 过度设计, 自造问题再补救, 权限恢复, dac_override, ssh无法登录, 运维事故, 恢复runbook
-
-## 2026-06-12 - rtk 包装的 ls/find 返回假 (empty)，空输出被当成"不存在"的证据
-
-**现象**: Claude Code 里 `ls`/`find` 查目录，返回 `(empty)`，但目录里实际有文件（如 `database/sql/` 里明明有 `juhaozu.sql`）。模型把空输出当作"目录为空/文件不存在"下结论，在假前提上继续推理，严重时诱发编造后续内容。
-**根因**: PreToolUse hook（`rtk hook claude`）把裸 `ls`/`find`/`grep` 等命令改写为 `rtk ls` 等包装命令以省 token；rtk 0.37.2 对 ls/find 的输出过滤有 bug，部分场景把有内容的结果过滤成 `(empty)`。空输出本身不报错，模型无从察觉被过滤。
-**解决**: ① 根治：rtk 配置（macOS 在 `~/Library/Application Support/rtk/config.toml`）`[hooks] exclude_commands = ["ls", "find"]`，这两个命令不再被改写（ls/find 输出短，走 rtk 本无节省价值）；改完用 `rtk hook check "ls /tmp"` 验证输出 `No rewrite`。② 复核渠道：`rtk proxy <原命令>`（官方原样透传）或绝对路径调用（`/usr/bin/find`、`/bin/ls`，hook 只匹配裸命令名）。③ 行为规矩：rtk 包装命令的空输出/「未找到」一律不作为"不存在"的证据，只有阳性结果可信；下"不存在"结论前必须经 ② 复核。`grep` 仍走 rtk（token 节省大头、暂无假输出实锤），一旦出现同类问题立即加进 exclude_commands。④ 升级：rtk 0.42.3 实测已修——简单 ls/find 结果正确，不支持的复合 find 表达式（-o/-exec 等）从静默吐空改为显式报错 `Use find directly`，静默失败模式已消除；exclude_commands 保留作零成本双保险。
-**标签**: rtk, claude-code, hook, ls, find, 假输出, empty, 输出过滤, 误判, exclude_commands

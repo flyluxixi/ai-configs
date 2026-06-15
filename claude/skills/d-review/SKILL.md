@@ -5,8 +5,6 @@ description: 代码审查 + 修复循环 + Git 提交推送 + 服务器部署 + 
 
 # d-review — 审查 · 修复 · 提交 · 部署
 
-> **执行约定**：本 skill 中所有 shell 命令均通过 `rtk` 前缀执行（全局规范）。示例中的 `git`、`ssh`、`curl` 等命令在实际执行时均写作 `rtk git ...`、`rtk ssh ...`、`rtk curl ...`。
-
 ## 入口识别
 
 | 用户输入 | 审查方式 |
