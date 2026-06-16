@@ -29,9 +29,11 @@ description: 记录技术踩坑或决策踩坑到个人知识库。用户说"记
 - PostgreSQL 相关 → `postgresql.md`
 - Docker / 容器相关 → `docker.md`
 - Nginx 相关 → `nginx.md`
-- uni-app / 微信小程序（mp-weixin）相关 → `mp-weixin.md`
+- **前端**（uni-app / 微信小程序 / CSS / 样式 / 布局 / 组件 / 输入等，**即便是通用 CSS / 浏览器机制，只要在前端场景踩到就归这**）→ `mp-weixin.md`
 - 架构或跨技术栈决策 → `decisions.md`
-- 其他 → `general.md`
+- 其他（**后端 / 运维 / 工具 / 跨技术栈通用，非前端**）→ `general.md`
+
+> 分类边界（避免分错）：前端的坑——哪怕是通用 CSS / 浏览器机制（如 margin collapse）——一律进 `mp-weixin.md`，不要因为"机制通用"就丢进 `general.md`。`general.md` 只装后端 / 运维 / 工具类（OSS、git、python、sqlite、redis、shell 等非前端）。
 
 如果无法确定，询问用户。
 
