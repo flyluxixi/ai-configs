@@ -157,3 +157,10 @@
 **根因**: 两层缓存 TTL 不一致。搜索列表缓存 `tmap:search:*` 设 24h，单条详情缓存 `tmap:poi-detail:*` 设 1h，且代码在列表缓存命中时直接返回、不重写单条详情。结果：用户首次搜索同时写两层，1h 后所有单条详情过期，但列表缓存还活着——后续搜索一直命中列表缓存（看起来正常），可一旦选楼盘提交，后端按 hotPointID 反查单条详情缓存 miss，报"已过期"。本质是"上层缓存活得比它依赖的下层缓存久，且上层命中时不给下层续期"。排查插曲：业务 Redis 用 DB 1（`REDIS_DB_DEFAULT=1`），而 `redis-cli` 默认连 DB 0，扫 key 看到 0 条是扫错库，不是真没写入——`redis-cli -n 1` 才看到 55 条存量列表缓存。
 **解决**: ① 两层缓存 TTL 对齐（都改 24h）；② 上层缓存命中时也重写下层缓存（列表命中后补调一次单条详情写入），保证下层随上层访问持续续期；③ 手动清掉存量旧列表缓存让其重建。通用原则：当 A 缓存的有效性依赖 B 缓存存在时，要么 TTL(A) ≤ TTL(B)，要么 A 命中时同步刷新 B；排查 Redis 缓存"像是没写入"时，先确认 `redis-cli -n <业务DB>` 连的是不是业务实际用的 DB。
 **标签**: redis, 缓存, ttl, 多层缓存, 缓存依赖, 续期, redis-db, redis-cli, 排查误判, cache-miss
+
+## 2026-06-16 - CSS margin collapse：父无 padding/border 时首个子元素 margin-top 穿透到父外，撑高页面出现意外滚动条
+
+**现象**: 页面内容明显没占满一屏，却出现一根生硬的竖向滚动条、能往下滚一点点。
+**根因**: CSS 外边距塌陷（margin collapse）。父元素（如 `.page`，常设 `min-height: 100vh`）若没有 `padding-top` / `border-top` / `overflow` 等，其**第一个子元素的 `margin-top` 会穿透塌陷到父元素外部**，相当于给父加了顶部外边距，使文档总高 = `100vh + 该 margin`，超出视口一点点 → 滚动。尾部子元素的 `margin-bottom` 同理向下穿透。本例：给 `.page` 第一个子元素（搜索框）加 `margin-top: 24rpx`，撑出 24rpx 滚动。
+**解决**: 首/尾间距优先用**父元素的 `padding`** 而非子元素的 `margin`（父有 padding 即阻断塌陷）；或给父加 `border-top` / `overflow: hidden` / `display: flex`（flex 容器内子 margin 不塌陷）等任一阻断属性。排查"内容没满却能滚"时先查首/尾子元素有没有纵向 margin 在穿透。通用 CSS 机制，不限 mp-weixin，H5/小程序/任意 web 同理。
+**标签**: css, margin-collapse, 外边距塌陷, 滚动条, 100vh, padding, margin-top, mp-weixin, uni-app, 布局
