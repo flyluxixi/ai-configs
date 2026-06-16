@@ -29,12 +29,13 @@ description: 记录技术踩坑或决策踩坑到个人知识库。用户说"记
 - PostgreSQL 相关 → `postgresql.md`
 - Docker / 容器相关 → `docker.md`
 - Nginx 相关 → `nginx.md`
+- uni-app / 微信小程序（mp-weixin）相关 → `mp-weixin.md`
 - 架构或跨技术栈决策 → `decisions.md`
 - 其他 → `general.md`
 
 如果无法确定，询问用户。
 
-**分类文件名安全约束**：只接受上方枚举列表中的固定文件名（`go.md` / `postgresql.md` / `docker.md` / `nginx.md` / `decisions.md` / `general.md`）。用户若提议其他名称 → 拒绝，告知用户当前枚举不可自由扩展；如确实需要新分类，先修改 d-pitfall SKILL.md 添加枚举项，而不是在本次会话中临时新建。
+**分类文件名安全约束**：只接受上方枚举列表中的固定文件名（`go.md` / `postgresql.md` / `docker.md` / `nginx.md` / `mp-weixin.md` / `decisions.md` / `general.md`）。用户若提议其他名称 → 拒绝，告知用户当前枚举不可自由扩展；如确实需要新分类，先修改 d-pitfall SKILL.md 添加枚举项，而不是在本次会话中临时新建。
 
 ---
 
