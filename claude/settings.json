@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read(/Users/luxixi/**)",
+      "Write(/Users/luxixi/projects/**)",
+      "Edit(/Users/luxixi/projects/**)",
+      "Write(/Users/luxixi/.claude/**)",
+      "Edit(/Users/luxixi/.claude/**)",
+      "Write(/Users/luxixi/.codex/**)",
+      "Edit(/Users/luxixi/.codex/**)",
+      "WebFetch",
+      "WebSearch",
+      "mcp__context7__query-docs",
+      "mcp__context7__resolve-library-id"
+    ],
+    "deny": [
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)"
+    ]
+  },
+  "enabledPlugins": {
+    "codex@openai-codex": true
+  },
+  "extraKnownMarketplaces": {
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    }
+  },
+  "effortLevel": "high",
+  "theme": "dark"
+}

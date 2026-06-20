@@ -15,7 +15,8 @@
 - `codex/luxixi`：指向 `../claude/luxixi` 的 symlink，不维护第二份规则
 - `claude/agents/`、`claude/skills/`、`claude/commands/`：Claude Code 专用资产
 - `claude/pitfall/`：各技术栈踩坑记录数据目录，由 pitfall skill 写入，进版本控制
-- `claude/hooks/`：Claude Code 本地 hook 脚本（如 `lang-guard.py` 语言漂移拦截），进版本控制；由机器本地 `~/.claude/settings.json` 用绝对路径引用，settings.json 本身不进本仓
+- `claude/hooks/`：Claude Code 本地 hook 脚本（如 `lang-guard.py` 语言漂移拦截），进版本控制；由本机 `~/.claude/settings.local.json` 用绝对路径引用 hook，含绝对路径的本机特定配置不进本仓
+- `claude/settings.json`：Claude Code 全局 settings 的版本化快照（permissions、enabledPlugins、effortLevel、theme 等通用可移植配置），进版本控制；与本机 `~/.claude/settings.json` 通过 cp 双向同步，不做 symlink（settings.json 会被 CLI 动态写入，symlink 易被原子写替换而漂移）。含 hook 绝对路径、机器私有项放本机 `~/.claude/settings.local.json`，不进本仓
 - `codex/skills/`：Codex 专用 skills，启用时同步到 `~/.codex/skills/`
 - `scripts/update.sh`：Claude Code 生态更新脚本，只负责更新 Claude CLI 和第三方 Claude agents / skills / commands
 - `docs/`：架构规划和维护说明
@@ -27,6 +28,7 @@
 - `~/.claude/luxixi` 与 `~/.codex/luxixi` 已 symlink 到 `claude/luxixi`，修改 `claude/luxixi/*.md` 后无需同步
 - `claude/skills/*/SKILL.md` 是所有 skill 的唯一源头，不单独修改 `codex/skills/`
 - 修改 `claude/skills/<skill>/SKILL.md` 后：cp 到 `~/.claude/skills/<skill>/`；若 `codex/skills/<skill>/` 存在，适配 Codex 语法同步后 cp 到 `~/.codex/skills/<skill>/`
+- 全局 settings 由 CLI 在本机侧驱动（`/config`、`/model`、`/fast` 等会写 `~/.claude/settings.json`）：本机改动后 cp 到 `claude/settings.json` 再提交；从仓库恢复时反向 cp 回 `~/.claude/settings.json`。机器私有项（hook 绝对路径、本地覆盖）只写 `~/.claude/settings.local.json`，不进仓
 - 不要直接修改 `~/.claude/luxixi`、`~/.codex/luxixi` 或 `codex/luxixi`
 - 不要把 `scripts/update.sh` 扩展成 Codex 同步脚本
 - 不要把 Claude Code 或 Codex 专用 frontmatter、agent、skill 格式写进 `claude/luxixi/` 中立规则源
