@@ -1,9 +1,17 @@
 ---
 name: d-pitfall
-description: 记录技术踩坑或决策踩坑到个人知识库。用户说"记录这个坑"、"记一下这个坑"、"把这个坑记下来"、"记坑"、"/d-pitfall"时触发。纯聊天、知识问答、非踩坑场景不触发。
+description: 记录技术踩坑或决策踩坑到个人知识库。显式触发：用户说"记录这个坑"、"记一下这个坑"、"把这个坑记下来"、"记坑"、"/d-pitfall"。主动提议触发：会话中刚解决一个根因非显然的问题（多次尝试才定位 / 推翻最初假设 / 修法反直觉或与文档、版本预期不符）时，用一句话提议记录，用户同意后才执行，每会话最多提议一次。一眼可见的普通小 bug、纯聊天、知识问答不触发。
 ---
 
 将当前对话中的踩坑信息整理并追加到 `~/projects/ai-configs/claude/pitfall/<分类>.md`。
+
+---
+
+## 触发方式
+
+- **显式触发**：用户说"记坑"等关键词或 `/d-pitfall` → 直接进入 Step 1。
+- **主动提议**（模型侦测）：一段排查刚收尾，且满足以下任一特征——① 多次尝试才定位根因；② 根因推翻了最初假设；③ 修法反直觉、文档未记载或与版本预期不符；④ 明显有未来复用价值。此时**只用一句话提议**（如：「这个坑值得记入 pitfall 吗？」），不预生成内容、不进入流程；用户同意后才进入 Step 1。
+- **防骚扰**：每个会话最多主动提议一次；用户拒绝或未回应后本会话不再提议。一眼可见的普通小 bug 不提议。
 
 ---
 
@@ -23,18 +31,34 @@ description: 记录技术踩坑或决策踩坑到个人知识库。用户说"记
 
 ## Step 2：推断分类
 
-根据内容推断分类，文件名使用小写连字符：
+根据内容推断分类，按「撞到哪个技术对象的坑就进哪个文件」优先匹配：
 
 - Go 相关 → `go.md`
 - PostgreSQL 相关 → `postgresql.md`
+- Redis / 缓存架构（TTL、多层缓存、key 设计、队列）→ `redis.md`
+- SQLite 相关 → `sqlite.md`
+- Python 语言 / 运行时 → `python.md`
 - Docker / 容器相关 → `docker.md`
 - Nginx 相关 → `nginx.md`
-- 架构或跨技术栈决策 → `decisions.md`
-- 其他 → `general.md`
+- Git 工作流（commit / 分支 / 撤销 / 协作）→ `git.md`
+- Shell / 服务器运维操作（权限、部署、系统命令事故）→ `shell.md`
+- **前端**（uni-app / 微信小程序 / CSS / 样式 / 布局 / 组件 / 输入等，**即便是通用 CSS / 浏览器机制，只要在前端场景踩到就归这**）→ `mp-weixin.md`
+- 外部服务 API 集成（地图 / 支付 / IM / 云厂商 OSS 等接口的字段、配额、签名怪癖）→ `third-party-api.md`
+- FastGPT 相关 → `fastgpt.md`
+- Open WebUI / AI 界面工具（模型配置、工具服务器、系统提示注入等）→ `open-webui.md`
+- AI 编程工具链（Claude Code / Codex CLI、终端渲染、逆向通道、本机 AI 环境与依赖）→ `ai-tooling.md`
+- 架构或跨技术栈决策方法论 → `decisions.md`
+- 以上都不匹配的孤例 → `general.md`
+
+> 分类边界（避免分错）：
+> - 产品专属文件优先于泛化分类：FastGPT / Open WebUI 的接口坑进各自专属文件，不进 `third-party-api.md`
+> - 前端的坑——哪怕是通用 CSS / 浏览器机制（如 margin collapse）——一律进 `mp-weixin.md`，不要因为"机制通用"就丢进 `general.md`
+> - 用某语言写的第三方 API 集成坑看坑的归属：坑在对方接口语义（字段类型、配额、签名）→ `third-party-api.md`；坑在语言 / 框架本身 → 对应语言文件
+> - `general.md` 是最后手段，只收不匹配任何分类的孤例；当其中同主题条目攒到 2 条时，应提议新建分类（先修改本 SKILL.md 枚举，再迁移条目），不让模糊条目继续堆积
 
 如果无法确定，询问用户。
 
-**分类文件名安全约束**：只接受上方枚举列表中的固定文件名（`go.md` / `postgresql.md` / `docker.md` / `nginx.md` / `decisions.md` / `general.md`）。用户若提议其他名称 → 拒绝，告知用户当前枚举不可自由扩展；如确实需要新分类，先修改 d-pitfall SKILL.md 添加枚举项，而不是在本次会话中临时新建。
+**分类文件名安全约束**：只接受上方枚举列表中的固定文件名（`go.md` / `postgresql.md` / `redis.md` / `sqlite.md` / `python.md` / `docker.md` / `nginx.md` / `git.md` / `shell.md` / `mp-weixin.md` / `third-party-api.md` / `fastgpt.md` / `open-webui.md` / `ai-tooling.md` / `decisions.md` / `general.md`）。用户若提议其他名称 → 拒绝，告知用户当前枚举不可自由扩展；如确实需要新分类，先修改 d-pitfall SKILL.md 添加枚举项，而不是在本次会话中临时新建。
 
 ---
 
