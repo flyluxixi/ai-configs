@@ -99,7 +99,6 @@
 
 ## 工具使用规范
 
-- Shell 命令使用 `rtk` 前缀执行
 - 查询第三方库文档优先使用 context7，不得凭训练记忆回答 API / 配置细节
 - 只有 context7 明确返回“未找到”时才降级到 WebFetch
 
@@ -140,7 +139,6 @@ Pull Request：
 2. 用 `git diff <base-branch>...HEAD` 查看全量变更
 3. PR 描述包含：变更摘要、测试计划
 
-@/Users/luxixi/.codex/RTK.md
 
 <!-- context7 -->
 Use Context7 MCP to fetch current documentation whenever the user asks about a library, framework, SDK, API, CLI tool, or cloud service -- even well-known ones like React, Next.js, Prisma, Express, Tailwind, Django, or Spring Boot. This includes API syntax, configuration, version migration, library-specific debugging, setup instructions, and CLI tool usage. Use even when you think you know the answer -- your training data may not reflect recent changes. Prefer this over web search for library docs.
