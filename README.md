@@ -1,152 +1,77 @@
 # ai-configs
 
-个人 AI 编程助手配置源库，用于统一维护 Claude Code 与 Codex 的长期规则、技术栈约定、agents、skills 和同步脚本。
+个人 AI 编程助手配置源库，统一维护 Claude Code 与 Codex 的全局入口、技术栈规则、agents / skills、踩坑知识库和更新 / 检查脚本。
 
-本仓库是源头，`~/.claude/` 和 `~/.codex/` 是同步目标，不作为手工维护目录。
+本仓库是唯一源头，`~/.claude/` 和 `~/.codex/` 是同步目标，不作为手工维护目录。
 
-## 当前定位
+## 定位
 
-本项目原本是 Claude Code + PHP/Webman 的个人配置仓库，现在正在升级为：
+- 同时支持 Claude Code 与 Codex，两侧共用中立技术栈规则源
+- 覆盖 Go + Gin、Vue 3、Nuxt 4、Flutter、微信小程序、Python、PostgreSQL、Redis、Nginx 等技术栈
+- 通用规则（入口文件）、技术栈规则（`luxixi/`）、工具专用资产（agents / skills）分层维护
 
-- 同时支持 Claude Code 与 Codex
-- 同时覆盖 PHP Webman、Go Gin、Nuxt 4、Flutter、微信小程序、PostgreSQL、Redis、Nginx 等技术栈
-- 将通用规则、技术栈规则、工具适配层拆开维护
-- 分别维护 Claude Code 与 Codex 的入口和 skills，共用中立技术栈规则源
+历史架构规划见 [docs/ai-assistant-config-architecture.md](docs/ai-assistant-config-architecture.md)（迁移期规划文档，当前实际状态以本文件和根 `CLAUDE.md` 为准）。
 
-详细规划见 [docs/ai-assistant-config-architecture.md](docs/ai-assistant-config-architecture.md)。
-
-## 目录规划
-
-目标结构：
+## 目录结构
 
 ```text
 ai-configs/
 ├── CLAUDE.md                 # 本仓库给 Claude Code 使用的项目级入口
 ├── AGENTS.md                 # 本仓库给 Codex 使用的项目级入口
 ├── claude/
-│   ├── CLAUDE.md             # ~/.claude/CLAUDE.md 已 symlink 到此
-│   ├── rules/                # 同步到 ~/.claude/rules/
-│   ├── luxixi/               # Claude / Codex 共用的中立规则源
-│   │   ├── go.md
-│   │   ├── nuxt4.md
-│   │   ├── flutter.md
-│   │   ├── miniprogram.md
-│   │   ├── postgresql.md
-│   │   ├── redis.md
-│   │   └── nginx.md
-│   ├── agents/               # Claude Code 专用 agents
-│   ├── skills/               # Claude Code 专用 skills
-│   └── commands/             # Claude Code 专用 commands
+│   ├── CLAUDE.md             # Claude Code 全局入口，~/.claude/CLAUDE.md 已 symlink 到此
+│   ├── rules/                # Claude Code rules 源（context7.md），~/.claude/rules 已 symlink 到此
+│   ├── luxixi/               # Claude / Codex 共用的中立技术栈规则源（9 个技术栈）
+│   ├── agents/               # Claude Code 专用 agents（php-expert）
+│   ├── skills/               # 所有 skill 的唯一源头（8 个 d-* skill）
+│   ├── pitfall/              # 各技术栈踩坑知识库，由 d-pitfall skill 写入
+│   └── settings.json         # ~/.claude/settings.json 的版本化快照（cp 双向同步）
 ├── codex/
-│   ├── AGENTS.md             # ~/.codex/AGENTS.md 已 symlink 到此
-│   ├── skills/               # Codex 专用 skills，修改后手动 cp 到 ~/.codex/skills/
+│   ├── AGENTS.md             # Codex 全局入口，~/.codex/AGENTS.md 已 symlink 到此
+│   ├── skills/               # Codex 适配版 skills（由 claude/skills 适配语法生成）
 │   └── luxixi -> ../claude/luxixi
 ├── scripts/
-│   └── update.sh             # Claude Code 生态更新脚本（crontab 直接指向此文件）
+│   ├── update.sh             # 每日更新 Claude CLI / Codex CLI 及第三方 Claude 资产
+│   └── check-sync.sh         # 源库 ↔ 本机 同步一致性检查
 ├── docs/
 └── README.md
 ```
 
-当前仓库仍处于迁移阶段，`claude/rules/`、`claude/commands/` 尚未落地。
+`claude/commands/` 预留，尚未落地。
 
-## 规则分层
+## 同步机制
 
-### Claude / Codex 入口
+| 内容 | 机制 | 修改后动作 |
+| --- | --- | --- |
+| `claude/CLAUDE.md`、`codex/AGENTS.md` | symlink | 无需同步 |
+| `claude/luxixi/`（含 `~/.codex/luxixi`） | symlink | 无需同步 |
+| `claude/rules/` | symlink | 无需同步 |
+| `claude/skills/` | cp | cp 到 `~/.claude/skills/<skill>/`；若有 `codex/skills/<skill>/`，适配 Codex 语法后 cp 到 `~/.codex/skills/<skill>/` |
+| `claude/agents/` | cp | cp 到 `~/.claude/agents/` |
+| `claude/settings.json` | cp 双向 | 本机被 CLI 改写后合并回仓库；从仓库恢复时反向 cp |
 
-- `claude/CLAUDE.md`：Claude Code 全局入口，`~/.claude/CLAUDE.md` 已 symlink 到此
-- `codex/AGENTS.md`：Codex 全局入口，`~/.codex/AGENTS.md` 已 symlink 到此
-- 根目录 `CLAUDE.md` / `AGENTS.md`：本仓库自身的项目级入口，不同步到全局目录
+- skill 的唯一源头是 `claude/skills/*/SKILL.md`；`codex/skills/` 是适配产物（去 `@path`、改显式读取指令），不单独维护内容
+- 同步完成后运行 `bash scripts/check-sync.sh` 验证一致性
 
-入口文件只放所有项目都成立的规则，例如：
+## 资产清单
 
-- 回复语言和沟通方式
-- 使用 `rtk` 执行 shell 命令
-- 先读项目 README / CLAUDE.md / AGENTS.md
-- 项目级规则优先
-- 不覆盖用户未授权改动
-- Git、文档、安全底线等通用要求
-
-技术栈专项规则不直接堆进全局入口。
-
-### 中立规则源
-
-`claude/luxixi/` 是 Claude Code 与 Codex 共用的中立规则源，后续计划维护：
-
-- `go.md`
-- `nuxt4.md`
-- `flutter.md`
-- `miniprogram.md`
-- `postgresql.md`
-- `redis.md`
-- `nginx.md`
-
-`codex/luxixi` 应作为 symlink 指向 `../claude/luxixi`，保证中立规则只维护一份。
-
-在本机 macOS 环境中，`~/.claude/luxixi` 和 `~/.codex/luxixi` 已直接 symlink 到源库：
-
-```bash
-ln -sfn ~/projects/ai-configs/claude/luxixi ~/.claude/luxixi
-ln -sfn ~/projects/ai-configs/claude/luxixi ~/.codex/luxixi
-```
-
-因此修改 `claude/luxixi/*.md` 后无需同步，Claude Code 与 Codex 会通过 symlink 直接读取最新内容。
-
-### 长期维护源头
-
-长期维护源头只有：
-
-- `claude/CLAUDE.md`
-- `codex/AGENTS.md`
-- `claude/luxixi/*.md`
-- `claude/skills/*/SKILL.md`
-- `codex/skills/*/SKILL.md`
-
-同步规则：
-
-- 修改 `claude/CLAUDE.md` / `codex/AGENTS.md` 后无需额外操作（symlink 自动生效）
-- 修改 `claude/luxixi/*.md` 后不需要同步
-- 修改 `claude/skills/*/SKILL.md` 后，手动 `cp` 到 `~/.claude/skills/<skill>/`
-- 修改 `codex/skills/*/SKILL.md` 后，手动 `cp` 到 `~/.codex/skills/<skill>/`
-- 不直接修改 `~/.claude/luxixi`、`~/.codex/luxixi` 或 `codex/luxixi`
-
-### Agent / Skill 资产
-
-`claude/agents/` 和 `claude/skills/` 保留 Claude Code 专用格式。`codex/skills/` 保留 Codex 专用 skill，允许与 Claude Code skills 内容相近，但涉及路径和入口文件时必须使用 Codex 侧约定。
-
-当前已有：
-
-- `claude/agents/php-expert.md`：PHP / Webman 专项 agent
-- `claude/skills/d-stop/SKILL.md`：会话收尾，维护 `PROJECT_STATUS.md`
-- `claude/skills/d-nginx/SKILL.md`：Nginx 薄 skill，引用 `~/.claude/luxixi/nginx.md`
-- `codex/skills/d-stop/SKILL.md`：Codex 会话收尾
-- `codex/skills/d-nginx/SKILL.md`：Codex Nginx skill，显式读取 `~/.codex/luxixi/nginx.md`（Codex 不支持 `@` 自动展开）
-
-这些文件里的专家知识可以复用，但不要直接复制后不校正路径、入口文件名和工具行为。
-
-## 现有文件说明
-
-- `CLAUDE.md`：本仓库给 Claude Code 使用的项目级入口
-- `AGENTS.md`：本仓库给 Codex 使用的项目级入口
-- `claude/CLAUDE.md`：Claude Code 全局入口源文件
-- `codex/AGENTS.md`：Codex 全局入口源文件
-- `scripts/update.sh`：Claude Code 生态更新脚本，只服务 Claude Code
-- `docs/ai-assistant-config-architecture.md`：Claude Code / Codex 共用源库的架构规划
+- agents：`php-expert`（PHP / Webman 专项）
+- skills（8 个）：`d-ask`（需求追问）、`d-step`（原子拆解执行）、`d-review`（审查 + 提交 + 部署，仅 Claude Code）、`d-stop`（会话收尾）、`d-pitfall`（记坑）、`d-decision`（设计决策固化）、`d-nginx`（Nginx 专家）、`d-prompt`（生图提示词优化）
+- codex/skills：除 `d-review` 外的 7 个适配版
 
 ## update.sh 职责
 
-`scripts/update.sh` 负责每日更新 Claude Code 生态内容：
+`scripts/update.sh` 每日通过 crontab 执行：
 
-- 更新 Claude CLI
-- 拉取第三方 Claude agents / skills / commands
-- 安装到 `~/.claude/`
+- 更新 Claude CLI 与 Codex CLI 本身
+- 拉取第三方 Claude agents / skills / commands 并安装到 `~/.claude/`
 
-它不负责 Codex，也不承担本仓库到 `~/.claude/` / `~/.codex/` 的同步职责。入口文件通过 symlink 自动生效，skills 修改后手动 `cp`。
+它不承担本仓库到 `~/.claude/` / `~/.codex/` 的同步职责。
 
 ## 维护原则
 
-- 长期规则源头只维护 `claude/CLAUDE.md`、`codex/AGENTS.md`、`claude/luxixi/*.md` 和两侧 `skills/*/SKILL.md`
+- 长期规则源头只在本仓库：两侧入口文件、`claude/luxixi/*.md`、`claude/skills/*/SKILL.md`、`claude/agents/*.md`、`claude/rules/*.md`
 - `~/.claude/` 和 `~/.codex/` 不作为规则源头
-- 全局入口保持薄，不绑定单一技术栈
-- 技术栈规则放入 `luxixi/`，由 Claude / Codex 共同引用
-- Claude Code 与 Codex 的 skills 可以内容相近，但路径引用和入口文件名必须分别适配
-- 修改后根据需要提交并推送到 `git@github.com:flyluxixi/ai-configs.git`
+- 全局入口保持薄，不绑定单一技术栈；技术栈规则放 `luxixi/`
+- Claude 与 Codex skills 内容相近，但路径引用和工具语法必须分别适配（Codex 不支持 `@path` 自动展开）
+- 修改后根据用户指令提交并推送到 `git@github.com:flyluxixi/ai-configs.git`

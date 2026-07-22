@@ -12,18 +12,27 @@
 - `codex/AGENTS.md`：Codex 全局入口源文件，`~/.codex/AGENTS.md` 已 symlink 到此，修改后无需手动同步
 - `claude/luxixi/`：Claude / Codex 共用的中立技术栈规则源
 - `codex/luxixi`：指向 `../claude/luxixi` 的 symlink，不维护第二份规则
-- `claude/agents/`、`claude/skills/`、`claude/commands/`：Claude Code 专用资产
+- `claude/rules/`：Claude Code rules 规则源（当前含 `context7.md`），`~/.claude/rules` 已 symlink 到此，修改后无需手动同步
+- `claude/agents/`、`claude/skills/`：Claude Code 专用资产，均以本仓库为源头，修改后 cp 到 `~/.claude/` 对应目录（`claude/commands/` 预留，尚未落地）
+- `claude/pitfall/`：各技术栈踩坑记录数据目录，由 pitfall skill 写入，进版本控制
+- `claude/settings.json`：Claude Code 全局 settings 的版本化快照（permissions、enabledPlugins、effortLevel、theme 等通用可移植配置），进版本控制；与本机 `~/.claude/settings.json` 通过 cp 双向同步，不做 symlink（settings.json 会被 CLI 动态写入，symlink 易被原子写替换而漂移）。机器私有项放本机 `~/.claude/settings.local.json`，不进本仓
 - `codex/skills/`：Codex 专用 skills，启用时同步到 `~/.codex/skills/`
-- `scripts/update.sh`：Claude Code 生态更新脚本，只负责更新 Claude CLI 和第三方 Claude agents / skills / commands
+- `scripts/update.sh`：AI CLI 生态更新脚本，更新 Claude CLI 与 Codex CLI 本身，并拉取第三方 Claude agents / skills / commands 安装到 `~/.claude/`；不承担本仓库到 `~/.claude/`、`~/.codex/` 的同步职责
+- `scripts/check-sync.sh`：源库与本机同步一致性检查脚本，核对 symlink 指向与 skills / agents / settings 内容；怀疑漂移时先运行它
 - `docs/`：架构规划和维护说明
 
 ## 维护规则
 
-- 长期维护源头：`claude/CLAUDE.md`、`codex/AGENTS.md`、`claude/luxixi/*.md`、两侧 `skills/*/SKILL.md`
+- 长期维护源头：`claude/CLAUDE.md`、`codex/AGENTS.md`、`claude/luxixi/*.md`、`claude/skills/*/SKILL.md`、`claude/agents/*.md`、`claude/rules/*.md`
 - `claude/CLAUDE.md` 与 `codex/AGENTS.md` 已 symlink，修改后无需额外操作
 - `~/.claude/luxixi` 与 `~/.codex/luxixi` 已 symlink 到 `claude/luxixi`，修改 `claude/luxixi/*.md` 后无需同步
-- 修改 `claude/skills/*/SKILL.md` 后，手动 `cp` 到 `~/.claude/skills/<skill>/`
-- 修改 `codex/skills/*/SKILL.md` 后，手动 `cp` 到 `~/.codex/skills/<skill>/`
+- `~/.claude/rules` 已 symlink 到 `claude/rules`，修改 `claude/rules/*.md` 后无需同步
+- `claude/skills/*/SKILL.md` 是所有 skill 的唯一源头，不单独修改 `codex/skills/`
+- 修改 `claude/skills/<skill>/SKILL.md` 后：cp 到 `~/.claude/skills/<skill>/`；若 `codex/skills/<skill>/` 存在，适配 Codex 语法同步后 cp 到 `~/.codex/skills/<skill>/`
+- 修改 `claude/agents/<agent>.md` 后：cp 到 `~/.claude/agents/`
+- 修改 `claude/CLAUDE.md` 或 `codex/AGENTS.md` 的通用规则时，同步评估另一侧是否需要同条更新，保持双侧入口对等
+- 完成任何 cp 同步或本机配置修改后，运行 `bash /Users/luxixi/projects/ai-configs/scripts/check-sync.sh` 验证源库与本机一致
+- 全局 settings 由 CLI 在本机侧驱动（`/config`、`/model`、`/fast` 等会写 `~/.claude/settings.json`）：本机改动后 cp 到 `claude/settings.json` 再提交；从仓库恢复时反向 cp 回 `~/.claude/settings.json`。机器私有项（本地覆盖）只写 `~/.claude/settings.local.json`，不进仓
 - 不要直接修改 `~/.claude/luxixi`、`~/.codex/luxixi` 或 `codex/luxixi`
 - 不要把 `scripts/update.sh` 扩展成 Codex 同步脚本
 - 不要把 Claude Code 或 Codex 专用 frontmatter、agent、skill 格式写进 `claude/luxixi/` 中立规则源
@@ -31,11 +40,12 @@
 - 技术栈规则文件应只写对应技术栈内的约束，跨技术栈规则应拆到独立文件
 - `PROJECT_STATUS.md` 是本地会话状态文件，不提交
 - `AGENTS.md` 中引用文件需要使用绝对路径，`CLAUDE.md` 可以使用相对路径
+- 修改根 `CLAUDE.md` 的目录职责或维护规则时，同步更新根 `AGENTS.md` 保持内容对齐
 
 ## 文档清单
 
 - `README.md`：仓库定位、目录规划、维护原则
-- `docs/ai-assistant-config-architecture.md`：Claude Code / Codex 共用配置源架构规划
+- `docs/ai-assistant-config-architecture.md`：Claude Code / Codex 共用配置源架构规划（迁移期规划文档，现状以 README 为准）
 
 ## Git
 
