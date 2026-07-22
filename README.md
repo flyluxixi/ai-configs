@@ -21,7 +21,7 @@ ai-configs/
 ├── claude/
 │   ├── CLAUDE.md             # Claude Code 全局入口，~/.claude/CLAUDE.md 已 symlink 到此
 │   ├── rules/                # Claude Code rules 源（context7.md），~/.claude/rules 已 symlink 到此
-│   ├── luxixi/               # Claude / Codex 共用的中立技术栈规则源（9 个技术栈）
+│   ├── luxixi/               # Claude / Codex 共用的中立技术栈规则源（13 个技术栈）
 │   ├── agents/               # Claude Code 专用 agents（php-expert）
 │   ├── skills/               # 所有 skill 的唯一源头（8 个 d-* skill）
 │   ├── pitfall/              # 各技术栈踩坑知识库，由 d-pitfall skill 写入
