@@ -21,7 +21,8 @@
 
 ## 文件与运维
 
-- 监控 SQLite 是否有新写入用 `-wal` 文件的 mtime，禁止用 size：WAL 文件预分配固定大小、原地循环覆盖写，写入不改 size
+- 监控 SQLite 是否有新写入用 `-wal` 文件的 mtime，禁止用 size：WAL 默认在约 1000 页（4MB）触发 checkpoint 后从头覆盖复用，size 通常停在高水位不再变化，写入只更新 mtime
+- 长驻读连接场景警惕 checkpoint 饥饿：并发读事务不断档会让 checkpoint 无法完成、WAL 文件无限增长；必须留出读间隙、设置 `PRAGMA journal_size_limit` 或手动 checkpoint 收敛
 - 对正在被写入的库禁止直接 `cp` 主文件备份——`-wal` / `-shm` 未落盘会拿到不一致快照；备份用 backup API 或 `VACUUM INTO`
 - `-wal`、`-shm` 文件必须与主库文件一起迁移 / 删除，禁止单独清理
 

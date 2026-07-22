@@ -16,12 +16,13 @@
 
 - 不同 compose 文件启动的容器默认网络隔离、互不可见；跨 compose 通信必须显式声明目标网络并标记 `external: true`，同时在 service 的 `networks` 中加入
 - `depends_on` 只能引用同一 compose 文件内的 service，跨文件引用静默无效；且默认只控制启动顺序、不等待就绪，就绪依赖用 healthcheck + `condition: service_healthy` 或应用层连接重试
-- service 应配置 healthcheck，除非该镜像无合适探测方式并说明
+- service 必须配置 healthcheck，除非该镜像无合适探测方式并说明
 - 生产 compose 必须设置 restart 策略与资源限制（memory / cpu）
 - 环境差异（端口、密钥、副本数）通过 `.env` 或 override 文件注入，compose 主文件保持环境无关
 
 ## 镜像构建
 
+- 构建部署镜像必须显式指定目标平台（`docker build --platform linux/amd64` 等）；本机架构（如 Apple Silicon 的 arm64）与服务器架构不一致时，缺省构建产出的镜像在服务器上无法运行
 - 多阶段构建分离编译与运行环境，运行镜像只含产物和运行时依赖
 - 层顺序按变化频率组织：依赖安装在前、源码拷贝在后，最大化构建缓存命中
 - 构建可复现：锁定依赖版本，不在构建时拉取不带版本约束的依赖
