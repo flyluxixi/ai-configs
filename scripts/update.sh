@@ -1,9 +1,11 @@
 #!/bin/bash
 
 # ============================================================
-# AI 工具配置自动更新脚本 v15
+# AI 工具配置自动更新脚本 v16
 #
 # 更新内容：
+#   A. 自更新 ai-configs 源（single source of truth）：工作区干净时 git pull
+#   B. 装配自建配置软链：CLAUDE.md / rules / luxixi / d-* skills → 软链到 ai-configs 源
 #   0. CLI 本身：Claude（native→后台自更新跳过 / npm→npm install 更新）+ Codex（codex update）
 #   1. everything-claude-code          — agents / skills / commands
 #   2. superpowers                     — systematic-debugging / verification-before-completion
@@ -162,6 +164,30 @@ copy_dir_contents() {
         || warn "$label 复制失败"
 }
 
+# link_selfbuilt: 把自建项软链到 ai-configs 源（幂等、安全）
+#   $1 源路径  $2 目标路径  $3 标签
+#   - 源不存在：warn 返回
+#   - 目标已是指向源的正确软链：跳过（幂等）
+#   - 目标是真实文件/目录或错误软链：移除后重建
+#     （rm 不带尾斜杠：对 symlink 只删链接不跟随，对真实目录删目录本身；仅白名单调用）
+link_selfbuilt() {
+    local src=$1 dst=$2 label=$3
+    if [ ! -e "$src" ]; then
+        warn "自建项源不存在，跳过 $label: $src"
+        return 1
+    fi
+    if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$src" ]; then
+        ok "$label 软链已就绪"
+        return 0
+    fi
+    rm -rf "$dst"
+    if ln -s "$src" "$dst"; then
+        ok "$label 软链已建 → $src"
+    else
+        warn "$label 软链创建失败"
+    fi
+}
+
 # ============================================================
 # 初始化目录
 # ============================================================
@@ -172,8 +198,57 @@ mkdir -p \
     "${CLAUDE_DIR}/commands"
 
 log "========================================================"
-log "开始执行 update.sh v15"
+log "开始执行 update.sh v16"
 log "========================================================"
+
+# ============================================================
+# A 自更新 ai-configs 源（single source of truth）
+#   仅在工作区干净时 git pull：
+#     · mac（开发/push 端）常有未提交改动 → 跳过，不干扰本地开发
+#     · topnew2 等纯消费端工作区干净 → 拉取最新源
+#   脚本自身位于该仓库内，pull 更新脚本对当前运行无影响（下次运行生效）
+# ============================================================
+log "======== A 自更新 ai-configs 源 ========"
+
+AI_CONFIGS_DIR="$HOME/projects/ai-configs"
+if [ -d "$AI_CONFIGS_DIR/.git" ]; then
+    pull_result=$(
+        cd "$AI_CONFIGS_DIR" 2>/dev/null || { echo "CD_FAIL"; exit 0; }
+        if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+            echo "DIRTY"; exit 0
+        fi
+        git pull --ff-only --quiet 2>/dev/null && echo "PULLED" || echo "PULL_FAIL"
+    )
+    case "$pull_result" in
+        PULLED)    ok "ai-configs 源已更新（git pull --ff-only）" ;;
+        DIRTY)     log "ai-configs 工作区有未提交改动，跳过 pull（开发端正常现象）" ;;
+        CD_FAIL)   warn "无法进入 ai-configs 目录: $AI_CONFIGS_DIR" ;;
+        PULL_FAIL) warn "ai-configs git pull 失败，请手动检查（可能有冲突或网络问题）" ;;
+    esac
+else
+    warn "ai-configs 不是 git 仓库: $AI_CONFIGS_DIR（自建配置无法自更新）"
+fi
+
+# ============================================================
+# B 装配自建配置（软链到 ai-configs 源）
+#   仅处理自建项白名单，绝不触碰第三方拷贝（步骤 1-5 负责）
+#   幂等：已是指向源的正确软链则跳过；真实文件/目录或错误软链则重建
+#   （mac 历史遗留的 d-* 真实拷贝已核实与源逐字节一致，转软链无损，
+#    顺带修复「源更新拷贝不同步」的断裂）
+# ============================================================
+log "======== B 装配自建配置软链 ========"
+
+AI_CONFIGS_CLAUDE="$AI_CONFIGS_DIR/claude"
+if [ ! -d "$AI_CONFIGS_CLAUDE" ]; then
+    warn "ai-configs 源目录不存在: $AI_CONFIGS_CLAUDE，跳过自建项装配"
+else
+    link_selfbuilt "$AI_CONFIGS_CLAUDE/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md" "CLAUDE.md"
+    link_selfbuilt "$AI_CONFIGS_CLAUDE/rules"     "$CLAUDE_DIR/rules"     "rules/"
+    link_selfbuilt "$AI_CONFIGS_CLAUDE/luxixi"    "$CLAUDE_DIR/luxixi"    "luxixi/"
+    for s in d-ask d-decision d-nginx d-pitfall d-prompt d-review d-step d-stop; do
+        link_selfbuilt "$AI_CONFIGS_CLAUDE/skills/$s" "$CLAUDE_DIR/skills/$s" "skill: $s"
+    done
+fi
 
 # ============================================================
 # 0/5 更新 CLI 本身（Claude + Codex）
@@ -226,7 +301,7 @@ if [ "$SYNC_RESULT" = "UPDATED" ]; then
         install_skill "$skill" "$ECC_DIR/skills/$skill"
     done
 
-    for cmd in build-fix update-docs verify; do
+    for cmd in build-fix update-docs; do
         if [ -f "$ECC_DIR/commands/${cmd}.md" ]; then
             cp "$ECC_DIR/commands/${cmd}.md" "${CLAUDE_DIR}/commands/"
             ok "command: $cmd"
