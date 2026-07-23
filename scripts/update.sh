@@ -1,11 +1,10 @@
 #!/bin/bash
 
 # ============================================================
-# AI 工具配置自动更新脚本 v13-mac
+# AI 工具配置自动更新脚本 v15
 #
 # 更新内容：
-#   0. Claude CLI 本身
-#   0.5. Codex CLI 本身
+#   0. CLI 本身：Claude（native→后台自更新跳过 / npm→npm install 更新）+ Codex（codex update）
 #   1. everything-claude-code          — agents / skills / commands
 #   2. superpowers                     — systematic-debugging / verification-before-completion
 #   3. anthropics/claude-plugins-official — frontend-design / code-review /
@@ -18,11 +17,12 @@
 #   cron（日志按天写入 scripts/update-logs/）：
 #   0 10 * * * bash ~/projects/ai-configs/scripts/update.sh
 #
-# macOS 注意事项：
-#   - PATH 中加入了 Homebrew、~/.local/bin（claude 原生安装路径）和 npm global 路径
-#   - claude 通过 claude install 原生安装（~/.local/bin/claude），codex 通过 npm global 安装
-#   - cron 在 macOS 上需要授予"完全磁盘访问"权限给 /usr/sbin/cron
-#     路径：系统设置 → 隐私与安全性 → 完全磁盘访问
+# 平台 / 安装方式说明（一份脚本，Mac 与服务器 git 同步后各走各的分支）：
+#   - Mac 本机：claude 为 native 安装（~/.local/bin/claude → ~/.local/share/claude/versions/），自带后台 auto-updater
+#   - 服务器（如 topnew2）：claude 为 npm 全局安装；downloads.claude.ai 不可达导致后台/`claude update` 更新失败，
+#     故脚本按安装方式自适应：native 跳过、npm 走 `npm install -g @anthropic-ai/claude-code@latest`
+#   - PATH 已覆盖 Homebrew、~/.local/bin、npm global；Linux 上 Homebrew 路径不存在会被忽略，无害
+#   - cron 在 macOS 上需要授予"完全磁盘访问"权限给 /usr/sbin/cron（系统设置 → 隐私与安全性 → 完全磁盘访问）
 # ============================================================
 
 set -uo pipefail
@@ -172,31 +172,42 @@ mkdir -p \
     "${CLAUDE_DIR}/commands"
 
 log "========================================================"
-log "开始执行 update.sh v13-mac"
+log "开始执行 update.sh v15"
 log "========================================================"
 
 # ============================================================
-# 0/5 更新 Claude CLI 本身
+# 0/5 更新 CLI 本身（Claude + Codex）
+#   Claude 按安装方式自适应：
+#     · native 安装（Mac，~/.local/share/claude/versions/ 存在）：自带后台 auto-updater，脚本跳过
+#     · npm 全局安装（服务器）：downloads.claude.ai 不可达使后台更新失败，改走 npm registry
+#       官方要求用 `npm install -g @anthropic-ai/claude-code@latest`，勿用 `npm update -g`（受原始 semver 约束不一定到最新）
+#   Codex 用官方 `codex update`：按安装方式（npm / standalone）自动选更新方式
 # ============================================================
-log "======== 0/5 更新 Claude CLI ========"
-if command -v claude >/dev/null 2>&1; then
-    if claude update 2>/dev/null; then
-        ok "Claude CLI 已更新至最新版"
+log "======== 0/5 更新 CLI 本身 ========"
+
+# --- Claude ---
+if [ -d "$HOME/.local/share/claude/versions" ]; then
+    ok "Claude 为 native 安装，由自带后台 auto-updater 更新，脚本跳过"
+elif command -v npm >/dev/null 2>&1 && npm ls -g @anthropic-ai/claude-code >/dev/null 2>&1; then
+    log "检测到 npm 全局安装的 Claude，执行 npm 更新..."
+    if npm install -g @anthropic-ai/claude-code@latest >/dev/null 2>&1; then
+        ok "Claude CLI 已更新至最新版（npm）"
     else
-        warn "Claude CLI 更新失败，请手动执行：claude update"
+        warn "Claude CLI npm 更新失败，请手动执行：npm install -g @anthropic-ai/claude-code@latest"
     fi
 else
-    warn "未找到 claude 命令，跳过更新（请先安装：claude install）"
+    warn "未识别 Claude 安装方式，跳过 Claude 更新"
 fi
 
-# ============================================================
-# 0.5/5 更新 Codex CLI
-# ============================================================
-log "======== 0.5/5 更新 Codex CLI ========"
-if npm update -g @openai/codex 2>/dev/null; then
-    ok "Codex CLI 已更新至最新版"
+# --- Codex ---
+if command -v codex >/dev/null 2>&1; then
+    if codex update 2>/dev/null; then
+        ok "Codex CLI 已更新至最新版"
+    else
+        warn "Codex CLI 更新失败，请手动执行：codex update"
+    fi
 else
-    warn "Codex CLI 更新失败，请手动执行：npm update -g @openai/codex"
+    warn "未找到 codex 命令，跳过更新（请先安装：npm install -g @openai/codex）"
 fi
 
 # ============================================================
