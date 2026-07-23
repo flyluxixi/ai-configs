@@ -4,7 +4,7 @@
 # AI 工具配置自动更新脚本 v16
 #
 # 更新内容：
-#   A. 自更新 ai-configs 源（single source of truth）：工作区干净时 git pull
+#   A. 同步 ai-configs 源（single source of truth，双向对等）：fetch 后按状态决策——干净且落后则 ff-pull；有未提交/本地领先/分叉则只告警（绝不自动 push）
 #   B. 装配自建配置软链：CLAUDE.md / rules / luxixi / d-* skills → 软链到 ai-configs 源
 #   0. CLI 本身：Claude（native→后台自更新跳过 / npm→npm install 更新）+ Codex（codex update）
 #   1. everything-claude-code          — agents / skills / commands
@@ -202,31 +202,49 @@ log "开始执行 update.sh v16"
 log "========================================================"
 
 # ============================================================
-# A 自更新 ai-configs 源（single source of truth）
-#   仅在工作区干净时 git pull：
-#     · mac（开发/push 端）常有未提交改动 → 跳过，不干扰本地开发
-#     · topnew2 等纯消费端工作区干净 → 拉取最新源
-#   脚本自身位于该仓库内，pull 更新脚本对当前运行无影响（下次运行生效）
+# A 同步 ai-configs 源（single source of truth，双向对等）
+#   两台机器（mac / topnew2）都是对等写入端，任一端可改；GitHub 仓库是唯一真相源。
+#   fetch 后按状态决策，绝不自动 commit/push（避免把半成品/临时文件推上去）：
+#     · 干净且落后远端         → fast-forward 拉取（纯消费端的正常路径）
+#     · 有未提交改动 / 本地领先  → 只告警，提示手动 commit + push 同步到另一端
+#     · 两端都有新提交（已分叉） → 只告警，需手动合并
+#   脚本自身位于该仓库内，ff 更新脚本对当前运行无影响（下次运行生效）
 # ============================================================
-log "======== A 自更新 ai-configs 源 ========"
+log "======== A 同步 ai-configs 源 ========"
 
 AI_CONFIGS_DIR="$HOME/projects/ai-configs"
-if [ -d "$AI_CONFIGS_DIR/.git" ]; then
-    pull_result=$(
-        cd "$AI_CONFIGS_DIR" 2>/dev/null || { echo "CD_FAIL"; exit 0; }
-        if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
-            echo "DIRTY"; exit 0
-        fi
-        git pull --ff-only --quiet 2>/dev/null && echo "PULLED" || echo "PULL_FAIL"
-    )
-    case "$pull_result" in
-        PULLED)    ok "ai-configs 源已更新（git pull --ff-only）" ;;
-        DIRTY)     log "ai-configs 工作区有未提交改动，跳过 pull（开发端正常现象）" ;;
-        CD_FAIL)   warn "无法进入 ai-configs 目录: $AI_CONFIGS_DIR" ;;
-        PULL_FAIL) warn "ai-configs git pull 失败，请手动检查（可能有冲突或网络问题）" ;;
-    esac
-else
+if [ ! -d "$AI_CONFIGS_DIR/.git" ]; then
     warn "ai-configs 不是 git 仓库: $AI_CONFIGS_DIR（自建配置无法自更新）"
+elif ! git -C "$AI_CONFIGS_DIR" fetch --quiet 2>/dev/null; then
+    warn "ai-configs git fetch 失败（网络或权限），跳过本次同步检查"
+else
+    ac_upstream=$(git -C "$AI_CONFIGS_DIR" rev-parse --abbrev-ref '@{u}' 2>/dev/null)
+    if [ -z "$ac_upstream" ]; then
+        warn "ai-configs 当前分支未设置 upstream，无法判断同步状态"
+    else
+        ac_dirty=""
+        [ -n "$(git -C "$AI_CONFIGS_DIR" status --porcelain 2>/dev/null)" ] && ac_dirty=1
+        ac_ahead=$(git -C "$AI_CONFIGS_DIR" rev-list --count '@{u}..HEAD' 2>/dev/null)
+        ac_behind=$(git -C "$AI_CONFIGS_DIR" rev-list --count 'HEAD..@{u}' 2>/dev/null)
+        ac_ahead=${ac_ahead:-0}
+        ac_behind=${ac_behind:-0}
+
+        if [ -n "$ac_dirty" ]; then
+            warn "⚠ ai-configs 有未提交改动（本地领先 ${ac_ahead} / 落后 ${ac_behind}）——请先 commit + push 同步到另一端；已跳过 pull 避免覆盖本地改动"
+        elif [ "$ac_ahead" -gt 0 ] && [ "$ac_behind" -gt 0 ]; then
+            warn "⚠ ai-configs 两端已分叉（本地 $ac_ahead / 远端 $ac_behind 各有新提交）——需手动合并，脚本不自动处理"
+        elif [ "$ac_ahead" -gt 0 ]; then
+            warn "⚠ ai-configs 本地领先远端 $ac_ahead 个提交未推送——请 git push，否则另一端拿不到（双边会漂移）"
+        elif [ "$ac_behind" -gt 0 ]; then
+            if git -C "$AI_CONFIGS_DIR" merge --ff-only --quiet '@{u}' 2>/dev/null; then
+                ok "ai-configs 源已更新（fast-forward 拉取 $ac_behind 个提交）"
+            else
+                warn "ai-configs fast-forward 失败，请手动检查（可能有冲突）"
+            fi
+        else
+            ok "ai-configs 已与远端一致（无新提交）"
+        fi
+    fi
 fi
 
 # ============================================================

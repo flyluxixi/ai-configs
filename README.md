@@ -31,7 +31,7 @@ ai-configs/
 │   ├── skills/               # Codex 适配版 skills（由 claude/skills 适配语法生成）
 │   └── luxixi -> ../claude/luxixi
 ├── scripts/
-│   ├── update.sh             # 每日更新 Claude CLI / Codex CLI 及第三方 Claude 资产
+│   ├── update.sh             # 每日：同步源（双向）+ 软链装配 + 更新 CLI / 第三方资产
 │   └── check-sync.sh         # 源库 ↔ 本机 同步一致性检查
 ├── docs/
 └── README.md
@@ -65,7 +65,7 @@ ai-configs/
 
 `scripts/update.sh` 每日通过 crontab 执行，是「源 → 运行时」的闭环装配器：
 
-- **A 自更新源**：工作区干净时 `git pull` 本仓库（mac 开发端常有未提交改动会跳过，消费端干净时拉最新）
+- **A 同步源（双向对等）**：`git fetch` 后按状态决策——干净且落后远端则 fast-forward 拉取；有未提交改动 / 本地领先 / 两端分叉则只告警，提示手动 `commit + push`（绝不自动 push，避免推半成品到另一端）
 - **B 装配自建软链**：把 `claude/CLAUDE.md`、`rules/`、`luxixi/`、`skills/d-*` 软链到 `~/.claude/`（幂等，仅白名单，不触碰第三方拷贝）
 - **0 更新 CLI**：Claude（native 后台自更 / npm 走 `npm install -g @latest`）+ Codex（`codex update`）
 - **1-5 拉第三方**：从各 GitHub 源增量拉取 agents / skills / commands 并 cp 到 `~/.claude/`
@@ -74,10 +74,10 @@ ai-configs/
 
 | 机器 | 角色 | 与本仓库关系 |
 | --- | --- | --- |
-| mac | 开发 / push 端 | 编辑本仓库并 push；`~/.claude/` 自建项软链到本仓库 |
-| topnew2 | 移动开发 / 消费端 | `git pull` 本仓库；每日 update.sh 自动装配软链，与 mac 保持一致 |
+| mac | 对等写入端（主开发） | 编辑本仓库并 push；`~/.claude/` 自建项软链到本仓库 |
+| topnew2 | 对等写入端（移动开发） | 编辑本仓库并 push；每日 update.sh 步骤 A fetch 后 ff-pull / 告警，装配软链 |
 
-mac 推 git、topnew2 拉 git：在 mac 改完自建配置并 push 后，topnew2 次日跑 update.sh 即自动 `git pull` + 装配软链，无需手工干预（topnew2 无公网，经 topnew1 ProxyJump 接入）。
+**双向对等，GitHub 仓库是唯一真相源**：两台都可改，任一端改完自建配置都要手动 `commit + push`；另一端下次 update.sh 步骤 A `git fetch` 后自动 fast-forward 拉取（干净且落后时）或告警（dirty / 本地领先 / 两端分叉）。脚本**绝不自动 push**——谁改谁手动推，否则两台漂移。随时 `bash scripts/check-sync.sh` 看 `0/5 git 同步状态` 段确认与远端是否一致（topnew2 无公网，经 topnew1 ProxyJump 接入）。
 
 ## 维护原则
 
@@ -85,4 +85,4 @@ mac 推 git、topnew2 拉 git：在 mac 改完自建配置并 push 后，topnew2
 - `~/.claude/` 和 `~/.codex/` 不作为规则源头
 - 全局入口保持薄，不绑定单一技术栈；技术栈规则放 `luxixi/`
 - Claude 与 Codex skills 内容相近，但路径引用和工具语法必须分别适配（Codex 不支持 `@path` 自动展开）
-- 修改后根据用户指令提交并推送到 `git@github.com:flyluxixi/ai-configs.git`
+- 双向对等：mac 与 topnew2 任一端改完都要按用户指令 `commit + push` 到 `git@github.com:flyluxixi/ai-configs.git`；另一端 update.sh 步骤 A 自动 ff-pull 或告警，脚本绝不自动 push

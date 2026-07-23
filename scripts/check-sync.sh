@@ -3,6 +3,7 @@
 # 源库 ↔ 本机 同步一致性检查
 #
 # 检查项：
+#   0. git 同步状态（本机 ↔ 远端 origin：dirty / ahead / behind，判断两台是否漂移）
 #   1. symlink 指向（~/.claude/CLAUDE.md、~/.claude/luxixi、~/.claude/rules、
 #      ~/.codex/AGENTS.md、~/.codex/luxixi、仓库内 codex/luxixi）
 #   2. claude/skills/*  ↔ ~/.claude/skills/*
@@ -37,6 +38,34 @@ check_symlink() {
     fi
 }
 
+echo "== 0/5 git 同步状态（本机 ↔ 远端 origin）=="
+if ! git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "⚠ $REPO 不是 git 仓库，跳过远端同步检查"
+elif ! git -C "$REPO" fetch --quiet 2>/dev/null; then
+    echo "⚠ git fetch 失败（网络/权限），跳过远端同步检查"
+else
+    gs_up=$(git -C "$REPO" rev-parse --abbrev-ref '@{u}' 2>/dev/null)
+    if [ -z "$gs_up" ]; then
+        drift "当前分支未设置 upstream，无法判断与远端的同步状态"
+    else
+        gs_ahead=$(git -C "$REPO" rev-list --count '@{u}..HEAD' 2>/dev/null); gs_ahead=${gs_ahead:-0}
+        gs_behind=$(git -C "$REPO" rev-list --count 'HEAD..@{u}' 2>/dev/null); gs_behind=${gs_behind:-0}
+        gs_dirty=""; [ -n "$(git -C "$REPO" status --porcelain 2>/dev/null)" ] && gs_dirty=1
+        if [ -n "$gs_dirty" ]; then
+            drift "有未提交改动（领先 ${gs_ahead} / 落后 ${gs_behind}）——commit + push 以同步到另一端"
+        elif [ "$gs_ahead" -gt 0 ] && [ "$gs_behind" -gt 0 ]; then
+            drift "已与远端分叉（本地 $gs_ahead / 远端 $gs_behind 各有新提交）——需手动合并"
+        elif [ "$gs_ahead" -gt 0 ]; then
+            drift "本地领先远端 $gs_ahead 个提交未推送——git push 以同步到另一端"
+        elif [ "$gs_behind" -gt 0 ]; then
+            drift "本地落后远端 $gs_behind 个提交——git pull（或等 update.sh 步骤 A 自动 ff）"
+        else
+            echo "✓ 已与远端 $gs_up 完全一致（无未提交、无 ahead/behind）"
+        fi
+    fi
+fi
+
+echo
 echo "== 1/5 symlink 指向 =="
 check_symlink "$HOME/.claude/CLAUDE.md" "$REPO/claude/CLAUDE.md"
 check_symlink "$HOME/.claude/luxixi"    "$REPO/claude/luxixi"
