@@ -55,6 +55,8 @@ Claude Code 官方支持 `~/.claude/rules/` 机制。如需自动按文件路径
 
 ### 5. update.sh 不改职责
 
+> 更新（2026-07-23，v16）：此结论已被取代。update.sh 现已扩展为「源 → 运行时」闭环装配器，新增 git pull 自更新源、软链装配自建项（CLAUDE.md / rules / luxixi / d-*）、Codex 更新等职责，以支撑 mac（源/push）+ topnew2（消费/pull）两台运行时自动对齐。当前实际以 `README.md` 的「update.sh 职责（v16）」为准。
+
 `scripts/update.sh` 是每日执行的 Claude Code 生态更新脚本，只服务 Claude Code：
 
 - 更新 Claude CLI
