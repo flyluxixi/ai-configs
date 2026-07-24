@@ -34,7 +34,7 @@ check_symlink() {
     if [ "$actual" = "$expect" ]; then
         echo "✓ $link -> $expect"
     else
-        drift "$link 应指向 $expect，实际：${actual:-不存在或不是 symlink}"
+        drift "$link 应指向 ${expect}，实际：${actual:-不存在或不是 symlink}"
     fi
 }
 
@@ -80,7 +80,7 @@ for dir in "$REPO"/claude/skills/*/; do
     name=$(basename "$dir")
     target="$HOME/.claude/skills/$name"
     if [ ! -d "$target" ]; then
-        drift "skill $name：~/.claude/skills/ 缺失，需 cp"
+        drift "skill ${name}：~/.claude/skills/ 缺失，需 cp"
     elif diff -rq "$dir" "$target" >/dev/null 2>&1; then
         echo "✓ $name"
     else
@@ -95,7 +95,7 @@ for dir in "$REPO"/codex/skills/*/; do
     name=$(basename "$dir")
     target="$HOME/.codex/skills/$name"
     if [ ! -d "$target" ]; then
-        drift "skill $name：~/.codex/skills/ 缺失，需 cp"
+        drift "skill ${name}：~/.codex/skills/ 缺失，需 cp"
     elif diff -rq "$dir" "$target" >/dev/null 2>&1; then
         echo "✓ $name"
     else
@@ -110,7 +110,7 @@ for file in "$REPO"/claude/agents/*.md; do
     name=$(basename "$file")
     target="$HOME/.claude/agents/$name"
     if [ ! -f "$target" ]; then
-        drift "agent $name：~/.claude/agents/ 缺失，需 cp"
+        drift "agent ${name}：~/.claude/agents/ 缺失，需 cp"
     elif diff -q "$file" "$target" >/dev/null 2>&1; then
         echo "✓ $name"
     else

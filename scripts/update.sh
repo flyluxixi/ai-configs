@@ -214,7 +214,7 @@ log "======== A 同步 ai-configs 源 ========"
 
 AI_CONFIGS_DIR="$HOME/projects/ai-configs"
 if [ ! -d "$AI_CONFIGS_DIR/.git" ]; then
-    warn "ai-configs 不是 git 仓库: $AI_CONFIGS_DIR（自建配置无法自更新）"
+    warn "ai-configs 不是 git 仓库: ${AI_CONFIGS_DIR}（自建配置无法自更新）"
 elif ! git -C "$AI_CONFIGS_DIR" fetch --quiet 2>/dev/null; then
     warn "ai-configs git fetch 失败（网络或权限），跳过本次同步检查"
 else
@@ -258,7 +258,7 @@ log "======== B 装配自建配置软链 ========"
 
 AI_CONFIGS_CLAUDE="$AI_CONFIGS_DIR/claude"
 if [ ! -d "$AI_CONFIGS_CLAUDE" ]; then
-    warn "ai-configs 源目录不存在: $AI_CONFIGS_CLAUDE，跳过自建项装配"
+    warn "ai-configs 源目录不存在: ${AI_CONFIGS_CLAUDE}，跳过自建项装配"
 else
     link_selfbuilt "$AI_CONFIGS_CLAUDE/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md" "CLAUDE.md"
     link_selfbuilt "$AI_CONFIGS_CLAUDE/rules"     "$CLAUDE_DIR/rules"     "rules/"
