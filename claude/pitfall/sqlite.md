@@ -13,3 +13,10 @@
 **根因**: 某些应用（微信等）在 schema 标 TEXT 的列里实际存 protobuf/二进制（常见命名 `*_buf_` / `extra_buffer` / `ext_buffer`）。Python sqlite3 默认 `text_factory=str`，对 TEXT 列一律按 UTF-8 解码，撞到二进制即崩；`SELECT *` 把这些列也取出来就触发。
 **解决**: ① 容错解码：`con.text_factory = lambda b: b.decode('utf-8', 'replace')`；② 或 SELECT 只取明文列、避开 `*_buf_`/`extra_buffer` 等二进制列；③ 需要二进制内容时按 BLOB 取出（`con.text_factory = bytes` 或单独取该列）再按 protobuf 解析。
 **标签**: sqlite, sqlite3, python, text_factory, protobuf, utf-8, 二进制列, blob, could-not-decode, 微信数据库
+
+## 2026-07-30 - sqlite3.deserialize 不认带 per-page reserve 的页格式，execute 报 unable to open database file
+
+**现象**: 把 SQLCipher 解密出的明文字节（微信库，每页尾部保留 80B reserve = IV16 + HMAC64）用 `con.deserialize(plain)` 载入内存后，`con.execute("SELECT ...")` 抛 `sqlite3.OperationalError: unable to open database file`。字节本身是合法明文 SQLite。
+**根因**: `sqlite3.deserialize`（Python 3.11+）走内存 DB 快速路径，不识别 header[20]=80 的 per-page reserve 页格式（保留字节把每页可用区缩短，deserialize 按标准页长解析即错位/打不开）；而 `connect(file)` 走完整文件打开路径，读 header[20] 认得 reserve 布局。
+**解决**: 别用 deserialize，把明文写临时文件再 `sqlite3.connect(tmpfile)` 打开，查完即删（`tempfile.mkstemp` + `os.remove`，含隐私务必删）。这也是 decrypt_wechat_db.py 的 inspect() 一直读得通的原因——它本就 connect 文件而非 deserialize。
+**标签**: sqlite, sqlite3, deserialize, connect, reserve, 页格式, sqlcipher, 微信解密, unable-to-open, python3.11
