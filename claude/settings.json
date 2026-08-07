@@ -1,13 +1,11 @@
 {
+  "env": {},
   "permissions": {
     "allow": [
       "Bash(*)",
       "Read(/Users/luxixi/**)",
-      "Write(/Users/luxixi/projects/**)",
       "Edit(/Users/luxixi/projects/**)",
-      "Write(/Users/luxixi/.claude/**)",
       "Edit(/Users/luxixi/.claude/**)",
-      "Write(/Users/luxixi/.codex/**)",
       "Edit(/Users/luxixi/.codex/**)",
       "WebFetch",
       "WebSearch",
@@ -19,6 +17,7 @@
       "Bash(rm -rf ~:*)"
     ]
   },
+  "model": "claude-fable-5[1m]",
   "enabledPlugins": {
     "codex@openai-codex": true
   },
@@ -30,8 +29,7 @@
       }
     }
   },
-  "env": {},
-  "model": "claude-fable-5[1m]",
+  "language": "chinese",
   "effortLevel": "xhigh",
   "theme": "dark"
 }
