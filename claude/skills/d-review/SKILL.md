@@ -1,9 +1,14 @@
 ---
 name: d-review
-description: 代码审查 + 修复循环 + Git 提交推送 + 服务器部署 + 运行状态检查的一站式 skill。触发条件：用户输入 /d-review 或 /d-review --codex。/d-review 由 Claude Code 自行审查；/d-review --codex 调用 /codex:adversarial-review --background 进行对抗性审查。两条路径审查通过后均执行：git commit → git push → 部署到服务器 → 检查运行状态。仅供 Claude Code 使用，不适用于 Codex。
+description: 代码审查 + 修复循环 + Git 提交推送 + 服务器部署 + 运行状态检查的一站式 skill。触发条件：用户输入 /d-review 或 /d-review --codex。/d-review 由 Claude Code 自行审查；/d-review --codex 调用 /codex:adversarial-review --background 进行对抗性审查。两条路径审查通过后均执行：git commit → git push → 部署到服务器 → 检查运行状态。与内置 /code-review 的分工：只需审查代码问题用内置 /code-review（或 /code-review ultra）；需要审查通过后继续走「测试 → 提交 → 部署 → 健康检查」发布闭环才用本 skill。仅供 Claude Code 使用，不适用于 Codex。
 ---
 
 # d-review — 审查 · 修复 · 提交 · 部署
+
+## 与内置 /code-review 的分工
+
+- 只想看代码有没有问题 → 用 Claude Code 内置 `/code-review`（或 `/code-review ultra` 多智能体云审查），审完即止。
+- 要走完整发布闭环（审查 → 测试 → 确认 → 提交推送 → 部署 → 健康检查）→ 用本 skill。
 
 ## 入口识别
 

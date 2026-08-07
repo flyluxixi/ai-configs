@@ -42,7 +42,7 @@ description: 记录技术踩坑或决策踩坑到个人知识库。显式触发�
 - Nginx 相关 → `nginx.md`
 - Git 工作流（commit / 分支 / 撤销 / 协作）→ `git.md`
 - Shell / 服务器运维操作（权限、部署、系统命令事故）→ `shell.md`
-- **前端**（uni-app / 微信小程序 / CSS / 样式 / 布局 / 组件 / 输入等，**即便是通用 CSS / 浏览器机制，只要在前端场景踩到就归这**）→ `mp-weixin.md`
+- **前端**（Nuxt / Vue / uni-app / 微信小程序 / CSS / 样式 / 布局 / 组件 / 输入等，**即便是通用 CSS / 浏览器机制，只要在前端场景踩到就归这**）→ `frontend.md`
 - 外部服务 API 集成（地图 / 支付 / IM / 云厂商 OSS 等接口的字段、配额、签名怪癖）→ `third-party-api.md`
 - FastGPT 相关 → `fastgpt.md`
 - Open WebUI / AI 界面工具（模型配置、工具服务器、系统提示注入等）→ `open-webui.md`
@@ -52,13 +52,13 @@ description: 记录技术踩坑或决策踩坑到个人知识库。显式触发�
 
 > 分类边界（避免分错）：
 > - 产品专属文件优先于泛化分类：FastGPT / Open WebUI 的接口坑进各自专属文件，不进 `third-party-api.md`
-> - 前端的坑——哪怕是通用 CSS / 浏览器机制（如 margin collapse）——一律进 `mp-weixin.md`，不要因为"机制通用"就丢进 `general.md`
+> - 前端的坑——哪怕是通用 CSS / 浏览器机制（如 margin collapse）——一律进 `frontend.md`，不要因为"机制通用"就丢进 `general.md`
 > - 用某语言写的第三方 API 集成坑看坑的归属：坑在对方接口语义（字段类型、配额、签名）→ `third-party-api.md`；坑在语言 / 框架本身 → 对应语言文件
 > - `general.md` 是最后手段，只收不匹配任何分类的孤例；当其中同主题条目攒到 2 条时，应提议新建分类（先修改本 SKILL.md 枚举，再迁移条目），不让模糊条目继续堆积
 
 如果无法确定，询问用户。
 
-**分类文件名安全约束**：只接受上方枚举列表中的固定文件名（`go.md` / `postgresql.md` / `redis.md` / `sqlite.md` / `python.md` / `docker.md` / `nginx.md` / `git.md` / `shell.md` / `mp-weixin.md` / `third-party-api.md` / `fastgpt.md` / `open-webui.md` / `ai-tooling.md` / `decisions.md` / `general.md`）。用户若提议其他名称 → 拒绝，告知用户当前枚举不可自由扩展；如确实需要新分类，先修改 d-pitfall SKILL.md 添加枚举项，而不是在本次会话中临时新建。
+**分类文件名安全约束**：只接受上方枚举列表中的固定文件名（`go.md` / `postgresql.md` / `redis.md` / `sqlite.md` / `python.md` / `docker.md` / `nginx.md` / `git.md` / `shell.md` / `frontend.md` / `third-party-api.md` / `fastgpt.md` / `open-webui.md` / `ai-tooling.md` / `decisions.md` / `general.md`）。用户若提议其他名称 → 拒绝，告知用户当前枚举不可自由扩展；如确实需要新分类，先修改 d-pitfall SKILL.md 添加枚举项，而不是在本次会话中临时新建。
 
 ---
 

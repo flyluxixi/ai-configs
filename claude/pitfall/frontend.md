@@ -1,4 +1,4 @@
-# uni-app / 微信小程序（mp-weixin）踩坑记录
+# 前端踩坑记录（Nuxt / Vue / uni-app / 微信小程序 / CSS）
 
 ## 2026-06-16 - mp-weixin/uni-app 输入负数：type=number 无负号键 + 中文键盘输出全角减号
 
